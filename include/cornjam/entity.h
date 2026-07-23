@@ -51,11 +51,14 @@ class Player : public Entity {
     float DashSpeed;
     float DashGauge = 1.0; //How long you can dash
     float DashRefillSpeed, DashUseSpeed;
+    float DashCooldown;
     AABBHitbox Hitbox;
 
     bool isDashing = false;
+    float LastDash = 0.0;
+    
 
-    Player(glm::vec3 position = glm::vec3(0.0), float directionRad = 0.0, glm::vec2 speed = glm::vec2(0.0), glm::vec2 velocity = glm::vec2(0.0), glm::vec2 terminalSpeed = glm::vec2(1.0), glm::vec2 resistance = glm::vec2(1.0), glm::vec2 scaleLocal = glm::vec2(1.0), glm::vec2 scaleGlobal = glm::vec2(1.0), glm::vec2 hitboxPosition = glm::vec2(0.0), glm::vec2 hitboxSize = glm::vec2(1.0), float dashSpeed = 1.0, float dashRefillSpeed = 3.0, float dashUseSpeed = 1.5) : Hitbox(hitboxPosition + glm::vec2(position.x, position.y), hitboxSize) {
+    Player(glm::vec3 position = glm::vec3(0.0), float directionRad = 0.0, glm::vec2 speed = glm::vec2(0.0), glm::vec2 velocity = glm::vec2(0.0), glm::vec2 terminalSpeed = glm::vec2(1.0), glm::vec2 resistance = glm::vec2(1.0), glm::vec2 scaleLocal = glm::vec2(1.0), glm::vec2 scaleGlobal = glm::vec2(1.0), glm::vec2 hitboxPosition = glm::vec2(0.0), glm::vec2 hitboxSize = glm::vec2(1.0), float dashSpeed = 1.0, float dashRefillSpeed = 3.0, float dashUseSpeed = 1.5, float dashCoolDown = 0.3) : Hitbox(hitboxPosition + glm::vec2(position.x, position.y), hitboxSize) {
         Position = position;
         Resistance = resistance;
         Speed = speed;
@@ -67,6 +70,7 @@ class Player : public Entity {
         DashSpeed = dashSpeed; 
         DashRefillSpeed = dashRefillSpeed;
         DashUseSpeed = dashUseSpeed;
+        DashCooldown = dashCoolDown;
     }
 
     void VeloUpdate(GridSpace &grid, int searchRadius) { //If anything is farther than searchRadius, discard it from collision testing.
@@ -175,14 +179,19 @@ class Player : public Entity {
             Velocity.y += -Speed.y * (DeltaTime * 60);
         }
 
-        if (input.isActionPressed(Action::Dash) && DashGauge != 0.0f) {
-            Velocity += GetDirectionVec2() * DashSpeed * float(glm::pow(DashGauge, 2.0)) * float(DeltaTime * 60);
+        if (input.isActionPressed(Action::Dash) && LastDash > DashCooldown) {
+            Velocity = GetDirectionVec2() * DashSpeed * float(glm::pow(DashGauge, 1.0));
             
             DashGauge = std::clamp(float(DashGauge - (1.0 / DashUseSpeed) * DeltaTime), 0.0f, 1.0f);
             isDashing = true;
+            LastDash = 1001.0f; //unreachable value with clamp
         } else {
+            if (LastDash == 1001.0f) {
+                LastDash = 0;
+            }
             DashGauge = std::clamp(float(DashGauge + (1.0 / DashRefillSpeed) * DeltaTime), 0.0f, 1.0f);
             isDashing = false;
+            LastDash = LastDash + std::clamp(float(DeltaTime), -1000.0f, 1000.0f);//arbitrary large value
         }
         std::cout << "DashGauge: " << DashGauge << std::endl;
     }
@@ -207,6 +216,7 @@ class Enemy : public Entity {
         Direction = glm::vec2(std::cos(DirectionRad), std::sin(DirectionRad));
         ScaleLocal = scaleLocal;
         ScaleGlobal = scaleGlobal;
+        KillSound.SetSourceGain(0.5);
     }
 
     bool Colliding(Player &player) {

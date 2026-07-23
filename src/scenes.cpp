@@ -6,9 +6,39 @@
 //PlayingScene
 
 void PlayingScene::Init() {
-    MainPlayer = new Player(glm::vec3(0.0), 0.0, glm::vec2(200.0), glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(50), glm::vec2(1.0), glm::vec2(0.0), glm::vec2(50), 1000.0, 3.0, 0.75);
+    MainPlayer = new Player(glm::vec3(0.0), 0.0, glm::vec2(200.0), glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(50), glm::vec2(1.0), glm::vec2(0.0), glm::vec2(50), 2000.0, 3.0, 0.25, 0.75);
+    
     testEnemy = new Enemy(glm::vec3(0.0), 0.0, glm::vec2(200.0), glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(50), glm::vec2(1.0), glm::vec2(0.0), glm::vec2(50));
+    
     WorldGrid = new GridSpace(glm::vec2(50), glm::vec3(0.0));
+    WorldGrid->Data = 
+    {
+        3, 3,
+        3, 2,
+        3, 1,
+        3, 0,
+        3, -1,
+        3, -2,
+        3, -3,
+        3, 3,
+        -3, 3,
+        -3, 2,
+        -3, 1,
+        -3, 0,
+        -3, -1,
+        -3, -2,
+        -3, -3,
+        2, 3,
+        1, 3,
+        0, 3,
+        -1, 3,
+        -2, 3,
+        2, -3,
+        1, -3,
+        0, -3,
+        -1, -3,
+        -2, -3
+    };
 
     mainVBO = new VertexBuffer(quadData, sizeof(quadData), GL_STATIC_DRAW);
     mainVBO->addAttribute(0, 2, GL_FLOAT, 4, 0);
@@ -22,13 +52,14 @@ void PlayingScene::Init() {
 void PlayingScene::Update() {
     MainPlayer->KeyboardUpdate(input);
     MainPlayer->VeloUpdate(*WorldGrid, 200);
-
-    glm::vec2 PCMousePos = glm::vec2(MousePos.x - WIDTH / 2, (MousePos.y - HEIGHT / 2) * -1);
-    //std::cout << PCMousePos.x << ", " << PCMousePos.y << std::endl;
-    glm::vec2 PCPlayerScreenPos = glm::vec2((MainPlayer->Position - mainCamera->Position).x - WIDTH / 2, (MainPlayer->Position - mainCamera->Position).y - HEIGHT / 2);
-    //std::cout << PCPlayerScreenPos.x << ", " << PCPlayerScreenPos.y << std::endl;
-    MainPlayer->SetDirection(glm::normalize( glm::vec2(PCMousePos - PCPlayerScreenPos) ));
-
+    if (!MainPlayer->isDashing) {
+        glm::vec2 PCMousePos = glm::vec2(MousePos.x - WIDTH / 2, (MousePos.y - HEIGHT / 2) * -1);
+        //std::cout << PCMousePos.x << ", " << PCMousePos.y << std::endl;
+        glm::vec2 PCPlayerScreenPos = glm::vec2((MainPlayer->Position - mainCamera->Position).x - WIDTH / 2, (MainPlayer->Position - mainCamera->Position).y - HEIGHT / 2);
+        //std::cout << PCPlayerScreenPos.x << ", " << PCPlayerScreenPos.y << std::endl;
+        MainPlayer->SetDirection(glm::normalize( glm::vec2(PCMousePos - PCPlayerScreenPos) ));
+    }
+    
     mainCamera->Position = mainCamera->CameraToEntity(*MainPlayer, WIDTH, HEIGHT, lerpToTime(0.5, DeltaTime));
 
     testEnemy->Update(*MainPlayer, *WorldGrid, 200);
@@ -69,6 +100,9 @@ void PlayingScene::Render() {
     mainShader->setVec3("Colour", glm::vec3(1.0, 0.2, 0.3));
     
     glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    //Gridspace
+    WorldGrid->RenderAll(*mainShader, *mainVBO, View, Projection);
 }
 
 void PlayingScene::Exit() {
