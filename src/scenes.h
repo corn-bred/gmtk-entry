@@ -45,6 +45,11 @@ class Scene {
 //Custom scenes written below
 
 class PlayingScene : public Scene {
+    int TimeLeft;
+    float Time, LastTime;
+
+    TextRenderer *timeText;
+
     GridSpace *WorldGrid;
     Player *MainPlayer;
     Enemy *testEnemy;
@@ -52,6 +57,8 @@ class PlayingScene : public Scene {
     VertexBuffer *mainVBO;
     Shader *mainShader;
     Camera2D *mainCamera;
+
+    Generator *Generators[2];
 
     public:
 

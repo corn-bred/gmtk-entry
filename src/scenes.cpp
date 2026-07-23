@@ -6,12 +6,16 @@
 //PlayingScene
 
 void PlayingScene::Init() {
+    TimeLeft = 120;
     MainPlayer = new Player(glm::vec3(0.0), 0.0, glm::vec2(200.0), glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(50), glm::vec2(1.0), glm::vec2(0.0), glm::vec2(50), 2000.0, 3.0, 0.25, 0.75);
     
-    testEnemy = new Enemy(glm::vec3(0.0), 0.0, glm::vec2(200.0), glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(50), glm::vec2(1.0), glm::vec2(0.0), glm::vec2(50));
+    testEnemy = new Enemy(glm::vec3(100, 100, 0.0), 0.0, 125.0, glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(50), glm::vec2(1.0), glm::vec2(0.0), glm::vec2(50));
     
+    Generators[0] = new Generator(glm::vec2(500, 0.0));
+    Generators[1] = new Generator(glm::vec2(-500, 0.0));
+
     WorldGrid = new GridSpace(glm::vec2(50), glm::vec3(0.0));
-    WorldGrid->Data = 
+    /*WorldGrid->Data = 
     {
         3, 3,
         3, 2,
@@ -38,7 +42,7 @@ void PlayingScene::Init() {
         0, -3,
         -1, -3,
         -2, -3
-    };
+    };*/
 
     mainVBO = new VertexBuffer(quadData, sizeof(quadData), GL_STATIC_DRAW);
     mainVBO->addAttribute(0, 2, GL_FLOAT, 4, 0);
@@ -47,11 +51,17 @@ void PlayingScene::Init() {
     mainShader = new Shader("src/shaders/main.vert", "src/shaders/main.frag");
 
     mainCamera = new Camera2D(glm::vec3(0.0, 0.0, 0.0), glm::vec2(1.0), 0.0);
+
+    timeText = new TextRenderer("res/img/sans-serif.png", 15, 15, 72, 90, true);
 }   
 
 void PlayingScene::Update() {
+    Time += DeltaTime;
+    if (floor(Time) != floor(LastTime)) {
+        TimeLeft--;
+    }
     MainPlayer->KeyboardUpdate(input);
-    MainPlayer->VeloUpdate(*WorldGrid, 200);
+    MainPlayer->VeloUpdate(*WorldGrid, 200, *Generators[0], *Generators[1]);
     if (!MainPlayer->isDashing) {
         glm::vec2 PCMousePos = glm::vec2(MousePos.x - WIDTH / 2, (MousePos.y - HEIGHT / 2) * -1);
         //std::cout << PCMousePos.x << ", " << PCMousePos.y << std::endl;
@@ -62,7 +72,8 @@ void PlayingScene::Update() {
     
     mainCamera->Position = mainCamera->CameraToEntity(*MainPlayer, WIDTH, HEIGHT, lerpToTime(0.5, DeltaTime));
 
-    testEnemy->Update(*MainPlayer, *WorldGrid, 200);
+    testEnemy->Update(*MainPlayer, *WorldGrid, 200, *Generators[0], *Generators[1]);
+    LastTime = Time;
 }
 
 void PlayingScene::Render() {
@@ -84,7 +95,7 @@ void PlayingScene::Render() {
     mainShader->setBool("isSolidColour", true);
     mainShader->setBool("isAnimation", false);
 
-    mainShader->setVec3("Colour", glm::vec3(1.0));
+    mainShader->setVec3("Colour", glm::vec3(0.2, 0.3, 1.0));
 
     mainVBO->bind();
     
@@ -101,8 +112,35 @@ void PlayingScene::Render() {
     
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
+    //Generators
+
+    mainShader->use();
+    
+    glm::mat4 Gen1Model = Generators[0]->GetTransformMatrix();
+    mainShader->setMat4("model", Gen1Model);
+
+    mainShader->setVec3("Colour", glm::vec3(1.0));
+    
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    mainShader->use();
+    
+    glm::mat4 Gen2Model = Generators[1]->GetTransformMatrix();
+    mainShader->setMat4("model", Gen2Model);
+
+    mainShader->setVec3("Colour", glm::vec3(1.0));
+    
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
     //Gridspace
+    
     WorldGrid->RenderAll(*mainShader, *mainVBO, View, Projection);
+
+    //Text
+
+    glm::mat4 TextView(1.0);
+
+    timeText->RenderText(std::to_string(TimeLeft), glm::vec2(0.0), 1.0, TextView, Projection);
 }
 
 void PlayingScene::Exit() {
