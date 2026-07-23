@@ -37,6 +37,8 @@ double DeltaTime = 0.0, LastTime;
 unsigned int FPSCounter, ShownFPS;
 int FrameIndex = 0;
 
+glm::vec2 MousePos;
+
 void framebufferSizeCallback(GLFWwindow *window, int width, int height) {
     WIDTH = width;
     HEIGHT = height;
@@ -46,10 +48,11 @@ void framebufferSizeCallback(GLFWwindow *window, int width, int height) {
 float LastX = -1.0, LastY = -1.0;
 
 void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
-
+    MousePos = glm::vec2(xpos, ypos);
 }
 
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    
 }
 
 int main() {

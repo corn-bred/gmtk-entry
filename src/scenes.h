@@ -45,6 +45,14 @@ class Scene {
 //Custom scenes written below
 
 class PlayingScene : public Scene {
+    GridSpace *WorldGrid;
+    Player *MainPlayer;
+    Enemy *testEnemy;
+
+    VertexBuffer *mainVBO;
+    Shader *mainShader;
+    Camera2D *mainCamera;
+
     public:
 
     void Init() override;

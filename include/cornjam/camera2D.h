@@ -44,8 +44,8 @@ class Camera2D {
 
     glm::vec3 CameraToEntity(Entity &entity, int ScreenWidth, int ScreenHeight, float lerp = 1.0) {
         glm::vec3 Pos = glm::vec3(0.0);
-        Pos.x = entity.Position.x + (entity.ScaleLocal.x * entity.ScaleGlobal.x) / 2 - ScreenWidth / 2;
-        Pos.y = entity.Position.y + (entity.ScaleLocal.y * entity.ScaleGlobal.y) / 2 - ScreenHeight / 2;
+        Pos.x = entity.Position.x - ScreenWidth / 2;
+        Pos.y = entity.Position.y - ScreenHeight / 2;
 
         //Holy lerping
         Pos.x = Position.x * (1.0 - lerp) + Pos.x * lerp;

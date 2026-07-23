@@ -13,3 +13,4 @@ extern glm::mat4 Projection;
 extern GameState game;
 extern InputManager input;
 extern AudioManager audio;
+extern glm::vec2 MousePos;
