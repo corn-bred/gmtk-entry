@@ -31,6 +31,9 @@ void PlayingScene::Init() {
         WorldGrid->AddSquare(-22, i);
     }
 
+    ParticleManager = new Particles("src/shaders/particles.comp", 5000);
+    ParticleManager->RenderSolidColourState(glm::vec3(1.0));
+
     mainVBO = new VertexBuffer(quadData, sizeof(quadData), GL_STATIC_DRAW);
     mainVBO->addAttribute(0, 2, GL_FLOAT, 4, 0);
     mainVBO->addAttribute(1, 2, GL_FLOAT, 4, 2);
@@ -67,7 +70,7 @@ void PlayingScene::Update() {
     mainCamera->UpdateShake();
 
     for (int i = 0; i < Enemies.size(); i++) {
-        Enemies[i]->Update(*MainPlayer, *WorldGrid, 200, *Generators[0], *Generators[1], *Generators[2], *Generators[3], TimeLeft, *mainCamera);
+        Enemies[i]->Update(*MainPlayer, *WorldGrid, 200, *Generators[0], *Generators[1], *Generators[2], *Generators[3], TimeLeft, *mainCamera, *ParticleManager);
     }
 
     LastTime = Time;
@@ -77,6 +80,8 @@ void PlayingScene::Update() {
     } else if (MainPlayer->Health <= 0) {
         std::cout << "You lose :(\n";
     }
+
+    ParticleManager->Update(glm::vec2(0.0));
 }
 
 void PlayingScene::Render() {
@@ -153,6 +158,10 @@ void PlayingScene::Render() {
     mainShader->setVec3("Colour", glm::vec3(1.0));
     
     glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    //Particles
+
+    ParticleManager->Render(View, Projection);
 
     //Gridspace
     

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <ctime>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -27,6 +28,7 @@
 #include "game.h"
 #include <cornjam/inputmanager.h>
 #include <cornbreadlib/audiomanager.h>
+#include <cornjam/particles.h>
 
 using namespace std;
 
@@ -57,6 +59,8 @@ void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
 
 int main() {
     //Initialization
+
+    srand(static_cast<unsigned int>(time(nullptr)));    
 
     //GLFW & GLAD
     if (!glfwInit()) {

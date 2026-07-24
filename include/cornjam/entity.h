@@ -119,7 +119,7 @@ class Enemy : public Entity {
 
     void Respawn();
 
-    void Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera);
+    void Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera, Particles &particleManager);
 
     glm::mat4 GetTransformMatrix();
 };

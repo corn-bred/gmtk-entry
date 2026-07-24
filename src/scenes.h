@@ -31,6 +31,12 @@
 #include <cornjam/bitmaptext.h>
 #include <misc/globals.h>
 
+enum class Screen {
+    Playing,
+    Win,
+    Lose
+};
+
 class Scene {
     public:
     virtual ~Scene() = default;
@@ -55,6 +61,8 @@ class PlayingScene : public Scene {
     GridSpace *WorldGrid;
     Player *MainPlayer;
     std::vector<Enemy*> Enemies;
+
+    Particles *ParticleManager;
 
     VertexBuffer *mainVBO;
     Shader *mainShader;

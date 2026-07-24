@@ -10,13 +10,12 @@
 #include <cornbreadlib/vertexbuffer.h>
 #include <time.h>
 
-#include "spritesheet.h"
+#include <cornjam/spritesheet.h>
 #include <misc/globals.h>
 
 #define PI 3.14159265358979323846
 
-inline float randomFloat(float offset) {
-    // Returns a random real in [0,1).
+inline float randomFloat() {
     return rand() / (RAND_MAX + 1.0);
 }
 
@@ -43,6 +42,7 @@ struct Particle {
 
 class Particles {
     private:
+    int _NextParticleIndex = 0;
     ComputeShader mainCompute;
     Shader Renderer;
     ShaderStorageBuffer SSBO;
@@ -55,131 +55,33 @@ class Particles {
     VertexBuffer DummyVBO;
 
     public:
-    const int ParticleNum = 0;
+    const int MaxParticles = 0;
 
-    Particles(const char *computePath, int particleNum, glm::vec2 origin, float maxDuration, float size, float speed, bool hasGravity, bool isLooping) : mainCompute(computePath), Renderer("src/shaders/particles.vert", "src/shaders/particles.frag"), ParticleNum(particleNum), SSBO(nullptr, 0, GL_DYNAMIC_DRAW), DummyVBO(nullptr, 0, GL_STATIC_DRAW) {
-        std::vector<Particle> particles(ParticleNum);
+    std::vector<Particle> particles;
 
-        for (int i = 0; i < ParticleNum; i++) {
-            particles[i].Origin = origin;
-            particles[i].Position = origin;
-            double RandomDouble = randomFloat(i);
-            particles[i].Velocity = glm::vec2(cos(RandomDouble * PI * 2) * speed, sin(RandomDouble * PI * 2) * speed);
-            particles[i].Duration = (float(i) / float(particleNum)) * maxDuration;
-            particles[i].MaxDuration = maxDuration;
-            particles[i].Size = size;
-            
-            particles[i].Speed = speed;
+    Particles(const char *computePath, int maxParticles);
 
-            particles[i].padding = 0.0f;
-
-            particles[i].Flags = FLAG_IS_ACTIVE;
-            if (hasGravity) particles[i].Flags |= FLAG_HAS_GRAVITY;
-            if (isLooping) particles[i].Flags |= FLAG_IS_LOOPING;
-        }
-
-        ShaderStorageBuffer tempSSBO(particles.data(), ParticleNum * sizeof(Particle), GL_DYNAMIC_DRAW);
-        SSBO = std::move(tempSSBO);
-        mainCompute.bind();
-        SSBO.bindToShader(0);
-    }
+    ~Particles();
 
     //BRUHH deconstructor is TECHNICALLY custom because of the variables inside
 
-    Particles(Particles&& other) noexcept :
-        mainCompute(std::move(other.mainCompute)),
-        Renderer(std::move(other.Renderer)),
-        SSBO(std::move(other.SSBO)),
-        DummyVBO(std::move(other.DummyVBO)),
-        Texture(other.Texture),
-        Spritesheet(other.Spritesheet),
-        RenderingType(other.RenderingType),
-        SolidColour(other.SolidColour) {
-        
-        other.Texture = nullptr;
-        other.Spritesheet = nullptr;
-    } //do allat
+    Particles(Particles&& other) noexcept;
 
-    Particles& operator=(Particles&& other) noexcept {
-        if (this != &other) {
-            // move assignment
-            mainCompute = std::move(other.mainCompute);
-            Renderer = std::move(other.Renderer);
-            SSBO = std::move(other.SSBO);
-            DummyVBO = std::move(other.DummyVBO);
-            
-            // move all the pointer classes and stuff
-            Texture = other.Texture;
-            Spritesheet = other.Spritesheet;
-            
-            RenderingType = other.RenderingType;
-            SolidColour = other.SolidColour;
-            
-            // then destroy
-            other.Texture = nullptr;
-            other.Spritesheet = nullptr;
-        }
-        return *this;
-    }
+    Particles& operator=(Particles&& other) noexcept;
 
-    void Update(glm::vec2 gravity) {
-        mainCompute.bind();
-        
-        mainCompute.setFloat("uDeltaTime", DeltaTime);
-        mainCompute.setVec2("uGravity", gravity);
-        mainCompute.setFloat("uCurrentTime", CurrentTime);
+    int GetNextParticleIndex();
 
-        mainCompute.use((ParticleNum + 255) / 256, 1, 1, GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
-    }
+    void UploadToGPU();
 
-    void RenderSolidColourState(glm::vec3 colour) {
-        RenderingType = RENDERING_SOLID_COLOUR;
-        SolidColour = colour;
-    }
+    void Emit(glm::vec2 origin, int particleNum, float maxDuration, float size, float variation, float speed, bool hasGravity);
 
-    void RenderTextureState(TextureBuffer &texture) {
-        RenderingType = RENDERING_TEXTURE;
-        Texture = &texture;
-    }
+    void Update(glm::vec2 gravity);
 
-    void RenderAnimatedState(Animation &animation) {
-        RenderingType = RENDERING_ANIMATED;
-        Spritesheet = &animation;
-    }
+    void RenderSolidColourState(glm::vec3 colour);
 
-    void Render(glm::mat4 &view, glm::mat4 &projection) {
-        Renderer.use();
-        Renderer.setMat4("view", view);
-        Renderer.setMat4("projection", projection);
+    void RenderTextureState(TextureBuffer &texture);
 
-        switch(RenderingType) {
-            case 0:
-            Renderer.setBool("isSolidColour", true);
-            Renderer.setVec3("Colour", SolidColour);
-            break;
+    void RenderAnimatedState(Animation &animation);
 
-            case 1:
-            Renderer.setBool("isSolidColour", false);
-            Texture->bindTexture(0);
-            break;
-
-            case 2:
-            Renderer.setBool("isSolidColour", false);
-            Renderer.setBool("isAnimation", true);
-            Renderer.setInt("Columns", Spritesheet->SpriteRenderer.Columns);
-            Renderer.setInt("Rows", Spritesheet->SpriteRenderer.Rows);
-            Renderer.setInt("Frame", Spritesheet->FrameHandler.GetFrame());
-            Spritesheet->SpriteRenderer.Sprite.bindTexture(0);
-            break;
-
-            default:
-            Renderer.setBool("isSolidColour", true);
-            Renderer.setVec3("Colour", glm::vec3(1.0));
-            break;
-        }
-
-        DummyVBO.bind();
-
-        glDrawArrays(GL_TRIANGLES, 0, ParticleNum * 6);
-    }
+    void Render(glm::mat4 &view, glm::mat4 &projection);
 };

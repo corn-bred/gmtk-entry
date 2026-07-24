@@ -15,6 +15,7 @@
 #include <cornjam/particles.h>
 #include <vector>
 #include <cornjam/camera2D.h>
+#include <cornjam/particles.h>
 
 void Entity::SetDirection(float directionRad) {
     DirectionRad = directionRad;
@@ -335,7 +336,7 @@ void Enemy::Respawn() {
     isActive = true;
 }
 
-void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera) { //If anything is farther than searchRadius, discard it from collision testing.
+void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera, Particles &particleManager) { //If anything is farther than searchRadius, discard it from collision testing.
     if (isActive == false) return;
 
     if (CurrentState == EnemyState::ReadyDash) Velocity = glm::vec2(0.0);
@@ -466,20 +467,22 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                 isDashing = false;
                 DashCooldown = CooldownTime;
             }
-            std::cout << "ASJIOFLKJD\n";
-        }
+    }
 
-        if (DashCooldown - DeltaTime <= 0.0) {
-            DashCooldown = 0.0f;
-        } else {
-            DashCooldown -= DeltaTime;
-        }
+    if (DashCooldown - DeltaTime <= 0.0) {
+        DashCooldown = 0.0f;
+    } else {
+        DashCooldown -= DeltaTime;
+    }
 
+    //is bro touching a player
     if (Colliding(player)) {
         camera.TriggerShake(10.0, 1.0);
         audio.PlaySound(KillSound);
+        particleManager.Emit(Position, 13, 1.5, 15, 10, 10, false);
         isActive = false;
     }
+
     //First, clamp the velocities
     Velocity.x = glm::clamp(Velocity.x, -TerminalSpeed.x, TerminalSpeed.x);
     Velocity.y = glm::clamp(Velocity.y, -TerminalSpeed.y, TerminalSpeed.y);
@@ -650,8 +653,6 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
     
     //std::cout << Position.x << ", " << Position.y << " : ";
     //std::cout << Hitbox.Origin.x << ", " << Hitbox.Origin.y << std::endl;
-
-    
         
     LastDist = Dist;
 }
