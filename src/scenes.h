@@ -3,6 +3,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <vector>
 
 #include <stb_image/stb_image.h>
 
@@ -29,6 +30,7 @@
 #include <cornjam/inputmanager.h>
 #include <cornjam/bitmaptext.h>
 #include <misc/globals.h>
+
 class Scene {
     public:
     virtual ~Scene() = default;
@@ -52,13 +54,13 @@ class PlayingScene : public Scene {
 
     GridSpace *WorldGrid;
     Player *MainPlayer;
-    Enemy *testEnemy;
+    std::vector<Enemy*> Enemies;
 
     VertexBuffer *mainVBO;
     Shader *mainShader;
     Camera2D *mainCamera;
 
-    Generator *Generators[2];
+    Generator *Generators[4];
 
     public:
 
