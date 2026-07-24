@@ -14,8 +14,10 @@
 #include <cmath>
 #include <cornjam/particles.h>
 #include <vector>
+#include <cornjam/camera2D.h>
 
 class Enemy;
+class Camera2D;
 
 enum class EnemyState {
     Wander, //Will try to get to generator
@@ -117,7 +119,7 @@ class Enemy : public Entity {
 
     void Respawn();
 
-    void Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time);
+    void Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera);
 
     glm::mat4 GetTransformMatrix();
 };

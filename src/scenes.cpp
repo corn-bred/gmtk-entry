@@ -9,7 +9,7 @@ void PlayingScene::Init() {
     TimeLeft = 120;
     MainPlayer = new Player(glm::vec3(0.0, -500.0, 0.0), 0.0, glm::vec2(200.0), glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(50), glm::vec2(1.0), glm::vec2(0.0), glm::vec2(50), glm::vec2(-10, -10), glm::vec2(30), 4000.0, 1.5, 0.5, 0.75, 0.5);
     for (int i = 0; i < 30; i++) {
-        Enemies.push_back(new Enemy(glm::vec3(rand() % 100 - 50, rand() % 100 - 50, 0.0), 0.0, 125.0, glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(50), glm::vec2(1.0), glm::vec2(0.0), glm::vec2(50), 1.5, 3000.0, 1.5f, 3.5f));
+        Enemies.push_back(new Enemy(glm::vec3(rand() % 100 - 50, rand() % 100 - 50, 0.0), 0.0, 125.0, glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(50), glm::vec2(1.0), glm::vec2(0.0), glm::vec2(50), 1.5, 2250.0, 1.5f, 3.5f));
     }
 
     Generators[0] = new Generator(glm::vec2(1000, 0.0));
@@ -64,9 +64,10 @@ void PlayingScene::Update() {
     }
     
     mainCamera->Position = mainCamera->CameraToEntity(*MainPlayer, WIDTH, HEIGHT, lerpToTime(0.5, DeltaTime));
+    mainCamera->UpdateShake();
 
     for (int i = 0; i < Enemies.size(); i++) {
-        Enemies[i]->Update(*MainPlayer, *WorldGrid, 200, *Generators[0], *Generators[1], *Generators[2], *Generators[3], TimeLeft);
+        Enemies[i]->Update(*MainPlayer, *WorldGrid, 200, *Generators[0], *Generators[1], *Generators[2], *Generators[3], TimeLeft, *mainCamera);
     }
 
     LastTime = Time;

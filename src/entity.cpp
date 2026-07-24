@@ -14,6 +14,7 @@
 #include <cmath>
 #include <cornjam/particles.h>
 #include <vector>
+#include <cornjam/camera2D.h>
 
 void Entity::SetDirection(float directionRad) {
     DirectionRad = directionRad;
@@ -334,7 +335,7 @@ void Enemy::Respawn() {
     isActive = true;
 }
 
-void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time) { //If anything is farther than searchRadius, discard it from collision testing.
+void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera) { //If anything is farther than searchRadius, discard it from collision testing.
     if (isActive == false) return;
 
     if (CurrentState == EnemyState::ReadyDash) Velocity = glm::vec2(0.0);
@@ -369,7 +370,7 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
 
     if ((glm::distance(Position, player.Position) > 450 || Dist < 200) && !Dashing)
         CurrentState = EnemyState::Wander;
-    else if ((glm::distance(Position, player.Position) > 100) && !Dashing)
+    else if ((glm::distance(Position, player.Position) > 200) && !Dashing)
         CurrentState = EnemyState::Chase;
     else if (!isDashing && DashCooldown <= 0) {
         if (CurrentState != EnemyState::ReadyDash)
@@ -430,7 +431,8 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
             break;
         }
         case EnemyState::ReadyDash:
-        Dashing = true;
+            Dashing = true;
+
             if (ReadyDashStartup) {
                 DashPrepareTime = DashPrepTime;
                 ReadyDashStartup = false;
@@ -445,8 +447,8 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
             }
             break;
         case EnemyState::Dashing:
-        Dashing = true;
-        std::cout << DashGauge << std::endl;
+            Dashing = true;
+
             DashPrepareTime = 0.0;
 
             if (DashingStartup) {
@@ -456,7 +458,7 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
 
             Velocity = GetDirectionVec2() * DashSpeed * float(glm::pow(DashGauge, 2.0));
 
-            DashGauge = glm::clamp(float(DashGauge - DeltaTime), 0.0f, 1.0f);
+            DashGauge = glm::clamp(float(DashGauge - (DeltaTime * 2)), 0.0f, 1.0f);
             
             if (DashGauge <= 0.0) {
                 Velocity = glm::vec2(0.0);
@@ -474,6 +476,7 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
         }
 
     if (Colliding(player)) {
+        camera.TriggerShake(10.0, 1.0);
         audio.PlaySound(KillSound);
         isActive = false;
     }
