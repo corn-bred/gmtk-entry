@@ -55,7 +55,7 @@ glm::mat4 Generator::GetTransformMatrix() {
     return Matrix;
 }
 
-Player::Player(glm::vec3 position = glm::vec3(0.0), float directionRad = 0.0, glm::vec2 speed = glm::vec2(0.0), glm::vec2 velocity = glm::vec2(0.0), glm::vec2 terminalSpeed = glm::vec2(1.0), glm::vec2 resistance = glm::vec2(1.0), glm::vec2 scaleLocal = glm::vec2(1.0), glm::vec2 scaleGlobal = glm::vec2(1.0), glm::vec2 hitboxPosition = glm::vec2(0.0), glm::vec2 hitboxSize = glm::vec2(1.0), glm::vec2 hurtboxPosition = glm::vec2(0.0), glm::vec2 hurtboxSize = glm::vec2(1.0), float dashSpeed = 1.0, float dashRefillSpeed = 3.0, float dashUseSpeed = 1.5, float dashCoolDown = 0.3, float invincibilityTime = 0.5) : Hitbox(hitboxPosition + glm::vec2(position.x, position.y), hitboxSize), Hurtbox(hurtboxPosition + glm::vec2(position.x, position.y), hurtboxSize) {
+Player::Player(glm::vec3 position = glm::vec3(0.0), float directionRad = 0.0, glm::vec2 speed = glm::vec2(0.0), glm::vec2 velocity = glm::vec2(0.0), glm::vec2 terminalSpeed = glm::vec2(1.0), glm::vec2 resistance = glm::vec2(1.0), glm::vec2 scaleLocal = glm::vec2(1.0), glm::vec2 scaleGlobal = glm::vec2(1.0), glm::vec2 hitboxPosition = glm::vec2(0.0), glm::vec2 hitboxSize = glm::vec2(1.0), glm::vec2 hurtboxPosition = glm::vec2(0.0), glm::vec2 hurtboxSize = glm::vec2(1.0), float dashSpeed = 1.0, float dashRefillSpeed = 3.0, float dashUseSpeed = 1.5, float dashCoolDown = 0.3, float invincibilityTime = 0.5) : Hitbox(hitboxPosition + glm::vec2(position.x, position.y), hitboxSize), Hurtbox(hurtboxPosition + glm::vec2(position.x, position.y), hurtboxSize), PlayerDash("res/audio/playerdash.wav"), PlayerDeath("res/audio/playerdeath.wav"), PlayerHurt("res/audio/playerhurt.wav") {
     Position = position;
     Resistance = resistance;
     Speed = speed;
@@ -244,10 +244,14 @@ void Player::VeloUpdate(GridSpace &grid, int searchRadius, Generator &gen1, Gene
     Hurtbox.Origin = HurtboxPosition + glm::vec2(Position.x, Position.y);
 
     for (int i = 0; i < enemies.size(); i++) {
-        if (Collision(Hurtbox, enemies[i]->Hitbox) && iTime <= 0.0 && (!isDashing || enemies[i]->isDashing) && enemies[i]->isActive) {
+        if (Collision(Hurtbox, enemies[i]->Hitbox) && iTime <= 0.0 && (!isDashing || enemies[i]->isDashing) && enemies[i]->isActive && enemies[i]->SpawnProtTime <= 0.0) {
             Health -= 10.0;
             iTime = InvincTime;
             particleManager.Emit(Position, 5, 0.5, 10, 10, 10, false);
+            if (Health > 0.0)
+                audio.PlaySound(PlayerHurt);
+            else
+                audio.PlaySound(PlayerDeath);
             Velocity = glm::normalize(Hurtbox.Origin - enemies[i]->Hitbox.Origin) * 4000.0f;
         }
     }
@@ -292,6 +296,8 @@ void Player::KeyboardUpdate (InputManager &input) {
     }
 
     if (input.isActionPressed(Action::Dash) && LastDash > DashCooldown) {
+        if (!isDashing)
+            audio.PlaySound(PlayerDash);
         Velocity = GetDirectionVec2() * DashSpeed * float(glm::pow(DashGauge, 1.0));
         
         DashGauge = std::clamp(float(DashGauge - (1.0 / DashUseSpeed) * DeltaTime), 0.0f, 1.0f);
@@ -305,10 +311,10 @@ void Player::KeyboardUpdate (InputManager &input) {
         isDashing = false;
         LastDash = LastDash + std::clamp(float(DeltaTime), -1000.0f, 1000.0f);//arbitrary large value
     }
-    std::cout << "DashGauge: " << DashGauge << ", HP: " << Health << std::endl;
+    //std::cout << "DashGauge: " << DashGauge << ", HP: " << Health << std::endl;
 }
 
-Enemy::Enemy(glm::vec3 position = glm::vec3(0.0), float directionRad = 0.0, float speed = 0.0, glm::vec2 velocity = glm::vec2(0.0), glm::vec2 terminalSpeed = glm::vec2(1.0), glm::vec2 resistance = glm::vec2(1.0), glm::vec2 scaleLocal = glm::vec2(1.0), glm::vec2 scaleGlobal = glm::vec2(1.0), glm::vec2 hitboxPosition = glm::vec2(0.0), glm::vec2 hitboxSize = glm::vec2(1.0), float contactTime = 1.0, float dashspeed = 1.0f, float dashPrepTime = 1.0, float cooldownTime = 3.0) : Hitbox(hitboxPosition + glm::vec2(position.x, position.y), hitboxSize), KillSound("res/audio/laser_slam.wav") {
+Enemy::Enemy(glm::vec3 position = glm::vec3(0.0), float directionRad = 0.0, float speed = 0.0, glm::vec2 velocity = glm::vec2(0.0), glm::vec2 terminalSpeed = glm::vec2(1.0), glm::vec2 resistance = glm::vec2(1.0), glm::vec2 scaleLocal = glm::vec2(1.0), glm::vec2 scaleGlobal = glm::vec2(1.0), glm::vec2 hitboxPosition = glm::vec2(0.0), glm::vec2 hitboxSize = glm::vec2(1.0), float contactTime = 1.0, float dashspeed = 1.0f, float dashPrepTime = 1.0, float cooldownTime = 3.0) : Hitbox(hitboxPosition + glm::vec2(position.x, position.y), hitboxSize), KillSound("res/audio/enemydeath.wav"), AddTime("res/audio/addtime.wav") {
     Position = position;
     Resistance = resistance;
     Speed = speed;
@@ -321,20 +327,18 @@ Enemy::Enemy(glm::vec3 position = glm::vec3(0.0), float directionRad = 0.0, floa
     DashPrepTime = dashPrepTime;
     CooldownTime = cooldownTime;
     DashSpeed = dashspeed;
-
-    KillSound.SetSourceGain(0.5);
 }
 
 bool Enemy::Colliding(Player &player) {
     if (player.isDashing && Collision(player.Hitbox, Hitbox)) {
-        KillSound.SetSourcePosition(Position);
         return true;
     } else
         return false;
 }
 
-void Enemy::Respawn() {
-    Position = glm::vec3(rand() % 100 - 50, rand() % 100 - 50, 0.0);
+void Enemy::Respawn(glm::vec2 position) {
+    Position = glm::vec3(position, 0.0);
+    SpawnProtTime = 1.0;
     isActive = true;
 }
 
@@ -392,7 +396,8 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                         TimeInContact += DeltaTime;
                         if (TimeInContact >= ContactTime) {
                             Time += 5;
-                            Respawn();
+                            isActive = false;
+                            audio.PlaySound(AddTime);
                         }
                     } else TimeInContact = 0;
                     break;
@@ -401,7 +406,8 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                         TimeInContact += DeltaTime;
                         if (TimeInContact >= ContactTime) { 
                             Time += 5;
-                            Respawn();
+                            isActive = false;
+                            audio.PlaySound(AddTime);
                         }
                     } else TimeInContact = 0;
                     break;
@@ -410,7 +416,8 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                         TimeInContact += DeltaTime;
                         if (TimeInContact >= ContactTime) {
                             Time += 5;
-                            Respawn();
+                            isActive = false;
+                            audio.PlaySound(AddTime);
                         }
                     } else TimeInContact = 0;
                     break;
@@ -419,7 +426,8 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                         TimeInContact += DeltaTime;
                         if (TimeInContact >= ContactTime) {
                             Time += 5;
-                            Respawn();
+                            isActive = false;
+                            audio.PlaySound(AddTime);
                         }
                     } else TimeInContact = 0;
                     break;
@@ -477,8 +485,10 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
         DashCooldown -= DeltaTime;
     }
 
+    SpawnProtTime = glm::clamp(SpawnProtTime - DeltaTime, 0.0, 10000.0);
+
     //is bro touching a player
-    if (Colliding(player)) {
+    if (Colliding(player) && SpawnProtTime <= 0.0) {
         camera.TriggerShake(10.0, 1.0);
         audio.PlaySound(KillSound);
         particleManager.Emit(Position, 13, 1.5, 15, 10, 10, false);

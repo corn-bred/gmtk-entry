@@ -83,6 +83,8 @@ class PlayingScene : public Scene {
     TextureBuffer *Background;
     VertexBuffer *bgVBO;
 
+    AudioData *GameLost, *GameWon;
+
     float TimeStop = 0.0;
 
     public:
@@ -100,6 +102,7 @@ class MainMenuScene : public Scene {
     VertexBuffer *mainVBO;
     Shader *mainShader;
     TextRenderer *text;
+    AudioData *GameStart;
     public:
 
     void Init() override;

@@ -67,6 +67,8 @@ class Player : public Entity {
     AABBHitbox Hitbox, Hurtbox;
     glm::vec2 HurtboxPosition;
 
+    AudioData PlayerDash, PlayerHurt, PlayerDeath;
+
     bool isDashing = false;
     float LastDash = 0.0;
 
@@ -91,10 +93,9 @@ class Enemy : public Entity {
     glm::vec2 TerminalSpeed;
     float Speed;
     AABBHitbox Hitbox;
-    AudioData KillSound;
+    AudioData KillSound, AddTime;
     EnemyState CurrentState = EnemyState::Wander;
     float LastDist, Dist;
-    bool turningLeft; //bruh bad code but i dont care
 
     bool isActive = false;
 
@@ -113,11 +114,13 @@ class Enemy : public Entity {
     float TimeInContact = 0.0;
     float ContactTime;
 
+    float SpawnProtTime = 0.0;
+
     Enemy(glm::vec3 position, float directionRad, float speed, glm::vec2 velocity, glm::vec2 terminalSpeed, glm::vec2 resistance, glm::vec2 scaleLocal, glm::vec2 scaleGlobal, glm::vec2 hitboxPosition, glm::vec2 hitboxSize, float contactTime, float dashspeed, float dashPrepTime, float cooldownTime);
 
     bool Colliding(Player &player);
 
-    void Respawn();
+    void Respawn(glm::vec2 position);
 
     void Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera, Particles &particleManager, float &TimeStop);
 

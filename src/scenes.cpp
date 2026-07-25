@@ -5,6 +5,58 @@
 
 //PlayingScene
 
+void RenderBarX(Shader &mainShader, VertexBuffer &mainVBO, float progress, glm::vec2 scale, glm::vec2 position, glm::vec3 barColor) {
+    glm::mat4 UIView(1.0);
+    // Background of health bar when empty
+    mainShader.use();
+    mainShader.setMat4("view", UIView); 
+    mainShader.setMat4("projection", Projection);
+    mainShader.setBool("isSolidColour", true);
+    mainShader.setBool("isAnimation", false);
+    mainShader.setVec3("Colour", glm::vec3(0.15f));
+    
+    glm::mat4 bgModel(1.0);
+    bgModel = glm::translate(bgModel, glm::vec3(position.x + scale.x / 2, position.y, 0.0f));
+    bgModel = glm::scale(bgModel, glm::vec3(scale, 1.0f));
+    mainShader.setMat4("model", bgModel);
+    mainVBO.bind();
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    
+    glm::mat4 fgModel(1.0);
+    fgModel = glm::translate(fgModel, glm::vec3(position.x + (scale.x * progress) / 2, position.y, 0.0f));
+    fgModel = glm::scale(fgModel, glm::vec3(scale.x * progress, scale.y, 1.0f));
+
+    mainShader.setMat4("model", fgModel);
+    mainShader.setVec3("Colour", barColor);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void RenderBarY(Shader &mainShader, VertexBuffer &mainVBO, float progress, glm::vec2 scale, glm::vec2 position, glm::vec3 barColor) {
+    glm::mat4 UIView(1.0);
+    // Background of health bar when empty
+    mainShader.use();
+    mainShader.setMat4("view", UIView); 
+    mainShader.setMat4("projection", Projection);
+    mainShader.setBool("isSolidColour", true);
+    mainShader.setBool("isAnimation", false);
+    mainShader.setVec3("Colour", glm::vec3(0.15f));
+    
+    glm::mat4 bgModel(1.0);
+    bgModel = glm::translate(bgModel, glm::vec3(position.x, position.y + scale.y / 2, 0.0f));
+    bgModel = glm::scale(bgModel, glm::vec3(scale, 1.0f));
+    mainShader.setMat4("model", bgModel);
+    mainVBO.bind();
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    
+    glm::mat4 fgModel(1.0);
+    fgModel = glm::translate(fgModel, glm::vec3(position.x, position.y + (scale.y * progress) / 2, 0.0f));
+    fgModel = glm::scale(fgModel, glm::vec3(scale.x, scale.y * progress, 1.0f));
+
+    mainShader.setMat4("model", fgModel);
+    mainShader.setVec3("Colour", barColor);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
 float bgVertices[] = {
     -2500.0f, -2500.0f,   0.0f,   0.0f,
      2500.0f, -2500.0f,   50.0f,  0.0f,
@@ -32,10 +84,10 @@ void debugDraw(Shader &mainShader, VertexBuffer &mainVBO, AABBHitbox &hitbox) {
 void PlayingScene::Init() {
     Time = 0.0f;   
     LastTime = 0.0f;
-    TimeLeft = 10;
+    TimeLeft = 60;
     CurrentState = Screen::Playing;
 
-    MainPlayer = new Player(glm::vec3(0.0, -500.0, 0.0), 0.0, glm::vec2(200.0), glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(100), glm::vec2(1.0), glm::vec2(-25), glm::vec2(50), glm::vec2(0, 0), glm::vec2(30), 4000.0, 1.5, 0.5, 0.3, 1.0);
+    MainPlayer = new Player(glm::vec3(0.0, -500.0, 0.0), 0.0, glm::vec2(200.0), glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(100), glm::vec2(1.0), glm::vec2(-25), glm::vec2(50), glm::vec2(0, 0), glm::vec2(30), 4000.0, 1.5, 0.5, 0.7, 1.0);
     
     PlayerAnimation = new Anim_SpriteRenderer("res/img/player.png", 1, 11, false);
 
@@ -85,13 +137,20 @@ void PlayingScene::Init() {
     bgVBO = new VertexBuffer(bgVertices, sizeof(bgVertices), GL_STATIC_DRAW);
     bgVBO->addAttribute(0, 2, GL_FLOAT, 4, 0); // Position
     bgVBO->addAttribute(1, 2, GL_FLOAT, 4, 2); // UV
+
+    GameLost = new AudioData("res/audio/gamelost.wav");
+    GameWon = new AudioData("res/audio/gamewon.wav");
 }   
 
 void PlayingScene::Update() {
     if (TimeLeft <= 0 || CurrentState == Screen::Win) {
+        if (TimeSinceFinished + DeltaTime >= 2.0 && TimeSinceFinished < 2.0)
+            audio.PlaySound(*GameWon);
         CurrentState = Screen::Win;
         TimeSinceFinished += DeltaTime;
     } else if (MainPlayer->Health <= 0 || CurrentState == Screen::Lose) {
+        if (TimeSinceFinished + DeltaTime >= 2.0 && TimeSinceFinished < 2.0)
+            audio.PlaySound(*GameLost);
         CurrentState = Screen::Lose;
         TimeSinceFinished += DeltaTime;
     } else {
@@ -117,7 +176,28 @@ void PlayingScene::Update() {
         Time += DeltaTime;
         if (floor(Time) != floor(LastTime)) {
             TimeLeft--;
-            Enemies[TimeLeft % 29]->Respawn();
+            if (TimeLeft >= 60 && TimeLeft % 5 == 0) {
+                std::cout << "60>\n";
+                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
+            } else if (TimeLeft < 60 && TimeLeft % 4 == 0) {
+                std::cout << "<60\n";
+                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
+            } else if (TimeLeft < 50 && TimeLeft >= 40 && TimeLeft % 3 == 0) {
+                std::cout << "<50\n";
+                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
+            } else if (TimeLeft < 40 && TimeLeft >= 30  && TimeLeft % 2 == 0) {
+                std::cout << "<40\n";
+                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
+            } else if (TimeLeft < 30 && TimeLeft >= 20) {
+                std::cout << "<30\n";
+                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
+            } else if (TimeLeft < 20 && TimeLeft >= 10) {
+                std::cout << "<20\n";
+                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 300 - 150, rand() % 300 - 150));
+            } else if (TimeLeft < 10) {
+                std::cout << "<10\n";
+                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 700 - 350, rand() % 700 - 350));
+            }
         }
     
         MainPlayer->KeyboardUpdate(input);
@@ -214,12 +294,19 @@ void PlayingScene::Render() {
         glm::mat4 EnemyModel = Enemies[i]->GetTransformMatrix();
         mainShader->setMat4("model", EnemyModel);
 
+        if (Enemies[i]->SpawnProtTime > 0.0)
+            mainShader->setVec4("ColourMultiplier", glm::vec4(glm::vec3(1.7), glm::clamp(-Enemies[i]->SpawnProtTime + 1.0, 0.0, 0.7)));
+        else
+            mainShader->setVec4("ColourMultiplier", glm::vec4(1.0));
+
 
         if (Enemies[i]->CurrentState == EnemyState::Dashing)
             EnemyDashing->RenderSprite(*mainShader, *mainVBO, EnemyModel, View, Projection);
         else
             EnemyWalking->RenderSprite(*mainShader, *mainVBO, EnemyModel, View, Projection);
     }
+
+    mainShader->setVec4("ColourMultiplier", glm::vec4(1.0));
     //Generators
 
     mainShader->use();
@@ -250,15 +337,38 @@ void PlayingScene::Render() {
 
     glm::mat4 UIView(1.0);
 
-    timeText->RenderText(std::to_string(TimeLeft), glm::vec2(0.0), 1.0, UIView, Projection);
+    timeText->RenderText(std::to_string(TimeLeft) + "s", glm::vec2(40, 40), 1.0, UIView, Projection);
+
+    RenderBarY(*mainShader, *mainVBO, MainPlayer->DashGauge, glm::vec2(30, 300), glm::vec2(WIDTH - 30 - 40, 40), glm::vec3(0.8 + 0.2 * MainPlayer->DashGauge, 0.6 * MainPlayer->DashGauge, 0.0));
+
+    timeText->RenderText("HP: " + std::to_string(int(MainPlayer->Health)), glm::vec2(WIDTH / 2.0 - 250, 65), 0.5, UIView, Projection);
+
+    RenderBarX(*mainShader, *mainVBO, MainPlayer->Health / 100.0, glm::vec2(500, 30), glm::vec2(WIDTH / 2.0 - 250, 40), (MainPlayer->Health / 100.0 >= 0.7) ? glm::vec3(0.0, 1.0, 0.0) : (MainPlayer->Health / 100.0 >= 0.3) ? glm::vec3(1.0, 1.0, 0.0): glm::vec3(1.0, 0.0, 0.0));
 
     //Overlay for screens
-    if (CurrentState == Screen::Lose)
+    if (CurrentState == Screen::Lose) {
+        mainShader->use();
+
+        glm::mat4 Overlay(1.0f);
+        Overlay = glm::translate(Overlay, glm::vec3(WIDTH/2, HEIGHT/2, 0.0));
+        Overlay = glm::scale(Overlay, glm::vec3(WIDTH, HEIGHT, 0.0));
+
+        mainShader->setMat4("model", Overlay);
+
+        mainShader->setMat4("view", UIView);
+
+        mainShader->setVec3("Colour", glm::vec3(0.0));
+        mainShader->setFloat("Alpha", EaseInOut(glm::clamp(TimeSinceFinished, 0.0f, 1.0f)) / 3);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
         timeText->RenderText("Game Over :(", glm::vec2(100, HEIGHT + 100 - (EaseInOut(glm::clamp(TimeSinceFinished - 2, 0.0f, 1.0f)) * 400)), 1.0, UIView, Projection);
+    }
     if (CurrentState == Screen::Win) {
         mainShader->use();
 
         glm::mat4 Overlay(1.0f);
+        Overlay = glm::translate(Overlay, glm::vec3(WIDTH/2, HEIGHT/2, 0.0));
         Overlay = glm::scale(Overlay, glm::vec3(WIDTH, HEIGHT, 0.0));
 
         mainShader->setMat4("model", Overlay);
@@ -313,11 +423,15 @@ void MainMenuScene::Init() {
     mainShader = new Shader("src/shaders/main.vert", "src/shaders/main.frag");
 
     text = new TextRenderer("res/img/sans-serif.png", 15, 15, 72, 90, true);
+    
+    GameStart = new AudioData("res/audio/gamestart.wav");
 }
 
 void MainMenuScene::Update() {
-    if (input.isKeyPressed(GLFW_KEY_SPACE))
+    if (input.isKeyPressed(GLFW_KEY_ENTER)) {
+        audio.PlaySound(*GameStart);
         game.ChangeScene(new PlayingScene());
+    }
 }
 
 void MainMenuScene::Render() {
@@ -325,7 +439,7 @@ void MainMenuScene::Render() {
     glClear(GL_COLOR_BUFFER_BIT);
     glm::mat4 View(1.0f);
     text->RenderText("COUNTDOWN", glm::vec2(WIDTH/2 - 100 - 225, HEIGHT/2 + 50), 1.0f, View, Projection);
-    text->RenderText("Press Space to Start", glm::vec2(WIDTH/2 - 120 - 225, HEIGHT/2 - 20), 0.5f, View, Projection); 
+    text->RenderText("Press ENTER to Start", glm::vec2(WIDTH/2 - 120 - 225, HEIGHT/2 - 20), 0.5f, View, Projection); 
 }
 
 void MainMenuScene::Exit() {
