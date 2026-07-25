@@ -110,7 +110,7 @@ int main() {
     game.Init();
 
     while(!glfwWindowShouldClose(window)) { 
-        double CurrentTime = glfwGetTime();
+        CurrentTime = glfwGetTime();
         DeltaTime = CurrentTime - LastTime;
         if (floor(CurrentTime) != floor(LastTime)) {
             stringstream titlestring;

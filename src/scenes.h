@@ -63,8 +63,13 @@ class PlayingScene : public Scene {
     TextRenderer *timeText;
 
     GridSpace *WorldGrid;
+
     Player *MainPlayer;
+    Anim_SpriteRenderer *PlayerAnimation;
+
     std::vector<Enemy*> Enemies;
+
+    Animation *EnemyWalking, *EnemyDashing;
 
     Particles *ParticleManager;
 
@@ -73,8 +78,12 @@ class PlayingScene : public Scene {
     Camera2D *mainCamera;
 
     Generator *Generators[4];
+    Animation *GeneratorAnimation;
 
-    Animation *PlayerAnimation;
+    TextureBuffer *Background;
+    VertexBuffer *bgVBO;
+
+    float TimeStop = 0.0;
 
     public:
 

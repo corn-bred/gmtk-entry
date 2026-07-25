@@ -53,7 +53,7 @@ class GridSpace {
             shader.setMat4("projection", Projection);
 
             shader.setBool("isSolidColour", true);
-            shader.setVec3("Colour", glm::vec3(0.15, 1.0, 0.05));
+            shader.setVec3("Colour", glm::vec3(0.7));
 
             vertexbuffer.bind();
 

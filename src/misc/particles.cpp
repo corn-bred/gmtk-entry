@@ -101,6 +101,7 @@ void Particles::UploadToGPU() {
 }
 
 void Particles::Emit(glm::vec2 origin, int particleNum, float maxDuration, float size, float variation, float speed, bool hasGravity) {
+    SSBO.readData(particles.data(), MaxParticles * sizeof(Particle));
     for (int i = 0; i < particleNum; i++) {
         int index = GetNextParticleIndex();
         particles[index].Origin = origin;

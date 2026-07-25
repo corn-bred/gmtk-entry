@@ -2,6 +2,7 @@
 
 in vec2 iTexCoords;
 uniform sampler2D Texture;
+uniform vec4 ColourMultiplier;
 
 uniform bool isSolidColour;
 uniform vec3 Colour;
@@ -16,7 +17,7 @@ out vec4 FragColour;
 
 void main() {
     if (isSolidColour) {
-        FragColour = vec4(Colour, Alpha);
+        FragColour = vec4(Colour, Alpha) * ColourMultiplier;
     } else if (isAnimation) {
         vec2 TexSize = vec2(1.0 / Columns, 1.0 / Rows);
         vec2 TexLocalCoords = iTexCoords * TexSize;
@@ -25,8 +26,8 @@ void main() {
         int Row = int(floor(float(Frame) / float(Columns)));
 
         vec2 TexCoords = vec2(TexLocalCoords.x + (TexSize.x * Column), TexLocalCoords.y + (TexSize.y * Row));
-        FragColour = texture(Texture, TexCoords);
+        FragColour = texture(Texture, TexCoords) * ColourMultiplier;
     } else {
-        FragColour = texture(Texture, iTexCoords);
+        FragColour = texture(Texture, iTexCoords) * ColourMultiplier;
     }
 }

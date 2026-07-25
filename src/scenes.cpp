@@ -5,24 +5,55 @@
 
 //PlayingScene
 
+float bgVertices[] = {
+    -2500.0f, -2500.0f,   0.0f,   0.0f,
+     2500.0f, -2500.0f,   50.0f,  0.0f,
+     2500.0f,  2500.0f,   50.0f,  50.0f,
+
+    -2500.0f, -2500.0f,   0.0f,   0.0f,
+     2500.0f,  2500.0f,   50.0f,  50.0f,
+    -2500.0f,  2500.0f,   0.0f,   50.0f
+};
+
+void debugDraw(Shader &mainShader, VertexBuffer &mainVBO, AABBHitbox &hitbox) {
+    mainShader.use();
+    mainShader.setVec4("ColourMultiplier", glm::vec4(1.0));
+    mainShader.setBool("isSolidColour", true);
+    mainShader.setBool("isAnimation", false);
+    mainShader.setVec3("Colour", glm::vec3(1.0));
+    glm::mat4 yes(1.0f);
+    yes = glm::translate(yes, glm::vec3(hitbox.Origin, 0.0));
+    yes = glm::scale(yes, glm::vec3(hitbox.Scale, 0.0));
+    mainShader.setMat4("model", yes);
+    mainVBO.bind();
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
 void PlayingScene::Init() {
     Time = 0.0f;   
     LastTime = 0.0f;
     TimeLeft = 10;
     CurrentState = Screen::Playing;
 
-    MainPlayer = new Player(glm::vec3(0.0, -500.0, 0.0), 0.0, glm::vec2(200.0), glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(50), glm::vec2(1.0), glm::vec2(0.0), glm::vec2(50), glm::vec2(-10, -10), glm::vec2(30), 4000.0, 1.5, 0.5, 0.75, 1.0);
+    MainPlayer = new Player(glm::vec3(0.0, -500.0, 0.0), 0.0, glm::vec2(200.0), glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(100), glm::vec2(1.0), glm::vec2(-25), glm::vec2(50), glm::vec2(0, 0), glm::vec2(30), 4000.0, 1.5, 0.5, 0.3, 1.0);
     
-    PlayerAnimation = new Animation(0, 39, 0.02, true, "res/img/player.png", 40, 2);
+    PlayerAnimation = new Anim_SpriteRenderer("res/img/player.png", 1, 11, false);
+
+    EnemyWalking = new Animation(0, 10, 1.0/24, true, "res/img/enemy.png", 5, 5, false);
+    EnemyDashing = new Animation(11, 21, 1.0/24, true, "res/img/enemy.png", 5, 5, false);
 
     for (int i = 0; i < 30; i++) {
-        Enemies.push_back(new Enemy(glm::vec3(rand() % 100 - 50, rand() % 100 - 50, 0.0), 0.0, 125.0, glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(50), glm::vec2(1.0), glm::vec2(0.0), glm::vec2(50), 1.5, 2250.0, 1.5f, 3.5f));
+        Enemies.push_back(new Enemy(glm::vec3(rand() % 100 - 50, rand() % 100 - 50, 0.0), 0.0, 125.0, glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(100), glm::vec2(1.0), glm::vec2(-25), glm::vec2(50), 1.5, 2250.0, 1.5f, 3.5f));
     }
+
+    Background = new TextureBuffer("res/img/0055.png", GL_REPEAT, GL_REPEAT);
 
     Generators[0] = new Generator(glm::vec2(1000, 0.0));
     Generators[1] = new Generator(glm::vec2(-1000, 0.0));
     Generators[2] = new Generator(glm::vec2(0.0, 1000));
     Generators[3] = new Generator(glm::vec2(0.0, -1000));
+
+    GeneratorAnimation = new Animation(0, 20, 1.0/12, true, "res/img/generator.png", 3, 7, false);
 
     WorldGrid = new GridSpace(glm::vec2(50), glm::vec3(0.0));
     for (int i = -22; i <= 22; i++) {
@@ -51,7 +82,9 @@ void PlayingScene::Init() {
 
     timeText = new TextRenderer("res/img/sans-serif.png", 15, 15, 72, 90, true);
 
-    PlayerAnimation->Update();
+    bgVBO = new VertexBuffer(bgVertices, sizeof(bgVertices), GL_STATIC_DRAW);
+    bgVBO->addAttribute(0, 2, GL_FLOAT, 4, 0); // Position
+    bgVBO->addAttribute(1, 2, GL_FLOAT, 4, 2); // UV
 }   
 
 void PlayingScene::Update() {
@@ -71,11 +104,16 @@ void PlayingScene::Update() {
             mainCamera->TriggerShake(15.0, 2.0);
         }
         mainCamera->Position = mainCamera->CameraToEntity(*MainPlayer, WIDTH, HEIGHT, lerpToTime(0.5, DeltaTime));
-        mainCamera->UpdateShake();
         ParticleManager->Update(glm::vec2(0.0));
+        mainCamera->UpdateShake();
     }
 
+    TimeStop = glm::max(TimeStop - DeltaTime, 0.0);
+
     if (CurrentState == Screen::Playing) {
+        if (TimeStop > 0)
+            DeltaTime *= 0.2;
+
         Time += DeltaTime;
         if (floor(Time) != floor(LastTime)) {
             TimeLeft--;
@@ -84,7 +122,7 @@ void PlayingScene::Update() {
     
         MainPlayer->KeyboardUpdate(input);
     
-        MainPlayer->VeloUpdate(*WorldGrid, 200, *Generators[0], *Generators[1], *Generators[2], *Generators[3], Enemies);
+        MainPlayer->VeloUpdate(*WorldGrid, 200, *Generators[0], *Generators[1], *Generators[2], *Generators[3], Enemies, *ParticleManager);
     
         if (!MainPlayer->isDashing) {
             glm::vec2 PCMousePos = glm::vec2(MousePos.x - WIDTH / 2, (MousePos.y - HEIGHT / 2) * -1);
@@ -95,17 +133,28 @@ void PlayingScene::Update() {
         }
 
         mainCamera->Position = mainCamera->CameraToEntity(*MainPlayer, WIDTH, HEIGHT, lerpToTime(0.5, DeltaTime));
-        mainCamera->UpdateShake();
         ParticleManager->Update(glm::vec2(0.0));
+
+        GeneratorAnimation->Update();
     
         for (int i = 0; i < Enemies.size(); i++) {
-            Enemies[i]->Update(*MainPlayer, *WorldGrid, 200, *Generators[0], *Generators[1], *Generators[2], *Generators[3], TimeLeft, *mainCamera, *ParticleManager);
+            Enemies[i]->Update(*MainPlayer, *WorldGrid, 200, *Generators[0], *Generators[1], *Generators[2], *Generators[3], TimeLeft, *mainCamera, *ParticleManager, TimeStop);
         }
-    
+
+        EnemyWalking->Update();
+        EnemyDashing->Update();
+        
+        mainCamera->UpdateShake();
+
         LastTime = Time;
     }
+    if (CurrentState == Screen::Win) {
+        MainPlayer->Velocity = glm::vec2(0.0);
+    }
+    
     
 }
+
 
 void PlayingScene::Render() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -118,24 +167,41 @@ void PlayingScene::Render() {
     mainShader->setMat4("projection", Projection);
 
     mainShader->setFloat("Alpha", 1.0);
+
+    mainShader->setVec4("ColourMultiplier", glm::vec4(1.0));
+
+    glm::mat4 matBackground(1.0f);
+    
+    mainShader->setMat4("model", matBackground);
+    mainShader->setBool("isSolidColour", false);
+    mainShader->setBool("isAnimation", false);
+    mainShader->setInt("Texture", 0);
+
+    Background->bindTexture(0);
+
+    bgVBO->bind();
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     
     //Player
     
-    glm::mat4 PlayerModel = MainPlayer->GetTransformMatrix();
-    mainShader->setMat4("model", PlayerModel);
-    
-        if (CurrentState != Screen::Lose) {
+    if (CurrentState != Screen::Lose) {
+        if (MainPlayer->iTime > 0) {
+            if (MainPlayer->iTime >= MainPlayer->InvincTime - 0.2)
+                mainShader->setVec4("ColourMultiplier", glm::vec4(1.5, 0.7, 0.7, 1.0));
+            else 
+                mainShader->setVec4("ColourMultiplier", glm::vec4(1.3, 1.3, 1.3, sin(CurrentTime) / 8 + 0.75));
+        }
             
-        mainShader->setBool("isSolidColour", false);
-        mainShader->setBool("isAnimation", false);
-
-        mainShader->setInt("Texture", 0);
-        PlayerAnimation->RenderSprite(*mainShader, *mainVBO, PlayerModel, View, Projection);
-
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glm::mat4 PlayerModel = MainPlayer->GetTransformMatrix();
+        if (MainPlayer->isDashing)
+            PlayerAnimation->RenderSprite(*mainShader, *mainVBO, PlayerModel, View, Projection, int(CurrentTime * glm::distance(glm::vec2(0.0), MainPlayer->Velocity) * 0.005) % 12);
+        else {
+            PlayerAnimation->RenderSprite(*mainShader, *mainVBO, PlayerModel, View, Projection, 0);
+        }
     }
 
-    mainVBO->bind();
+    mainShader->setVec4("ColourMultiplier", glm::vec4(1.0));
     
     //Enemy
     mainShader->use();
@@ -143,52 +209,33 @@ void PlayingScene::Render() {
     mainShader->setBool("isAnimation", false);
     for (int i = 0; i < Enemies.size(); i++) {
         if (!Enemies[i]->isActive) continue;
-        mainShader->use();
     
         glm::mat4 EnemyModel = Enemies[i]->GetTransformMatrix();
         mainShader->setMat4("model", EnemyModel);
 
-        mainShader->setVec3("Colour", glm::vec3(1.0, 0.2, 0.3));
-    
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        if (Enemies[i]->CurrentState == EnemyState::Dashing)
+            EnemyDashing->RenderSprite(*mainShader, *mainVBO, EnemyModel, View, Projection);
+        else
+            EnemyWalking->RenderSprite(*mainShader, *mainVBO, EnemyModel, View, Projection);
     }
     //Generators
 
     mainShader->use();
+    mainShader->setBool("isSolidColour", true);
+    mainShader->setBool("isAnimation", false);
     
     glm::mat4 Gen1Model = Generators[0]->GetTransformMatrix();
-    mainShader->setMat4("model", Gen1Model);
-
-    mainShader->setVec3("Colour", glm::vec3(1.0));
-    
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    mainShader->use();
+    GeneratorAnimation->RenderSprite(*mainShader, *mainVBO, Gen1Model, View, Projection);
     
     glm::mat4 Gen2Model = Generators[1]->GetTransformMatrix();
-    mainShader->setMat4("model", Gen2Model);
-
-    mainShader->setVec3("Colour", glm::vec3(1.0));
-    
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    mainShader->use();
+    GeneratorAnimation->RenderSprite(*mainShader, *mainVBO, Gen2Model, View, Projection);
     
     glm::mat4 Gen3Model = Generators[2]->GetTransformMatrix();
-    mainShader->setMat4("model", Gen3Model);
-
-    mainShader->setVec3("Colour", glm::vec3(1.0));
-    
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-
-    mainShader->use();
+    GeneratorAnimation->RenderSprite(*mainShader, *mainVBO, Gen3Model, View, Projection);
     
     glm::mat4 Gen4Model = Generators[3]->GetTransformMatrix();
-    mainShader->setMat4("model", Gen4Model);
-
-    mainShader->setVec3("Colour", glm::vec3(1.0));
-    
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    GeneratorAnimation->RenderSprite(*mainShader, *mainVBO, Gen4Model, View, Projection);
 
     //Particles
 
@@ -200,27 +247,29 @@ void PlayingScene::Render() {
 
     //Text
 
-    glm::mat4 TextView(1.0);
+    glm::mat4 UIView(1.0);
 
-    timeText->RenderText(std::to_string(TimeLeft), glm::vec2(0.0), 1.0, TextView, Projection);
+    timeText->RenderText(std::to_string(TimeLeft), glm::vec2(0.0), 1.0, UIView, Projection);
 
     //Overlay for screens
     if (CurrentState == Screen::Lose)
-        timeText->RenderText("Game Over :(", glm::vec2(100, HEIGHT + 100 - (EaseInOut(glm::clamp(TimeSinceFinished - 2, 0.0f, 1.0f)) * 400)), 1.0, TextView, Projection);
+        timeText->RenderText("Game Over :(", glm::vec2(100, HEIGHT + 100 - (EaseInOut(glm::clamp(TimeSinceFinished - 2, 0.0f, 1.0f)) * 400)), 1.0, UIView, Projection);
     if (CurrentState == Screen::Win) {
         mainShader->use();
 
         glm::mat4 Overlay(1.0f);
-        Overlay = glm::translate(Overlay, glm::vec3(-WIDTH / 2, -HEIGHT / 2, 0.0));
         Overlay = glm::scale(Overlay, glm::vec3(WIDTH, HEIGHT, 0.0));
+
         mainShader->setMat4("model", Overlay);
+
+        mainShader->setMat4("view", UIView);
 
         mainShader->setVec3("Colour", glm::vec3(0.0));
         mainShader->setFloat("Alpha", EaseInOut(glm::clamp(TimeSinceFinished, 0.0f, 1.0f)) / 3);
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        timeText->RenderText("You win :)", glm::vec2(100, HEIGHT + 100 - (EaseInOut(glm::clamp(TimeSinceFinished - 2, 0.0f, 1.0f)) * 400)), 1.0, TextView, Projection);
+        timeText->RenderText("You win :)", glm::vec2(100, HEIGHT + 100 - (EaseOut(glm::clamp(TimeSinceFinished - 2, 0.0f, 1.0f)) * 400)), 1.0, UIView, Projection);
     }
 }  
 
@@ -236,6 +285,10 @@ void PlayingScene::Exit() {
     }
     delete timeText;
     delete PlayerAnimation;
+    delete EnemyWalking;
+    delete EnemyDashing;
+    delete Background;
+    delete bgVBO;
     MainPlayer = nullptr;
     WorldGrid = nullptr;
     mainVBO = nullptr;
@@ -243,6 +296,10 @@ void PlayingScene::Exit() {
     mainCamera = nullptr;
     timeText = nullptr;
     PlayerAnimation = nullptr;
+    EnemyWalking = nullptr;
+    EnemyDashing = nullptr;
+    Background = nullptr;
+    bgVBO = nullptr;
 }
 
 //MainMenuScene

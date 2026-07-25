@@ -68,4 +68,10 @@ class ShaderStorageBuffer {
             unbind();
         }
     }
+
+    void readData(void* data, GLsizeiptr size) {
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, SSBO);
+        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, size, data);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    }
 };

@@ -40,7 +40,7 @@ Generator::Generator(glm::vec2 position) : CollisionBox(glm::vec2(position.x - 2
 
     SetDirection(0.0f);
     
-    ScaleLocal = glm::vec2(100, 100);
+    ScaleLocal = glm::vec2(150, 150);
     ScaleGlobal = glm::vec2(1.0);
 }
 
@@ -72,7 +72,7 @@ Player::Player(glm::vec3 position = glm::vec3(0.0), float directionRad = 0.0, gl
     HurtboxPosition = hurtboxPosition;
 }
 
-void Player::VeloUpdate(GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, std::vector<Enemy*> &enemies) { //If anything is farther than searchRadius, discard it from collision testing.
+void Player::VeloUpdate(GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, std::vector<Enemy*> &enemies, Particles &particleManager) { //If anything is farther than searchRadius, discard it from collision testing.
     //First, clamp the velocities
     Velocity.x = glm::clamp(Velocity.x, -TerminalSpeed.x, TerminalSpeed.x);
     Velocity.y = glm::clamp(Velocity.y, -TerminalSpeed.y, TerminalSpeed.y);
@@ -244,9 +244,11 @@ void Player::VeloUpdate(GridSpace &grid, int searchRadius, Generator &gen1, Gene
     Hurtbox.Origin = HurtboxPosition + glm::vec2(Position.x, Position.y);
 
     for (int i = 0; i < enemies.size(); i++) {
-        if (Collision(Hurtbox, enemies[i]->Hitbox) && iTime <= 0.0 && !isDashing && enemies[i]->isActive) {
+        if (Collision(Hurtbox, enemies[i]->Hitbox) && iTime <= 0.0 && (!isDashing || enemies[i]->isDashing) && enemies[i]->isActive) {
             Health -= 10.0;
             iTime = InvincTime;
+            particleManager.Emit(Position, 5, 0.5, 10, 10, 10, false);
+            Velocity = glm::normalize(Hurtbox.Origin - enemies[i]->Hitbox.Origin) * 4000.0f;
         }
     }
 
@@ -336,7 +338,7 @@ void Enemy::Respawn() {
     isActive = true;
 }
 
-void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera, Particles &particleManager) { //If anything is farther than searchRadius, discard it from collision testing.
+void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera, Particles &particleManager, float &TimeStop) { //If anything is farther than searchRadius, discard it from collision testing.
     if (isActive == false) return;
 
     if (CurrentState == EnemyState::ReadyDash) Velocity = glm::vec2(0.0);
@@ -389,7 +391,7 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                     if(Collision(Hitbox, gen1.InteractionBox)) {
                         TimeInContact += DeltaTime;
                         if (TimeInContact >= ContactTime) {
-                            Time += 10;
+                            Time += 5;
                             Respawn();
                         }
                     } else TimeInContact = 0;
@@ -398,7 +400,7 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                     if(Collision(Hitbox, gen2.InteractionBox)) {
                         TimeInContact += DeltaTime;
                         if (TimeInContact >= ContactTime) { 
-                            Time += 10;
+                            Time += 5;
                             Respawn();
                         }
                     } else TimeInContact = 0;
@@ -407,7 +409,7 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                     if(Collision(Hitbox, gen3.InteractionBox)) {
                         TimeInContact += DeltaTime;
                         if (TimeInContact >= ContactTime) {
-                            Time += 10;
+                            Time += 5;
                             Respawn();
                         }
                     } else TimeInContact = 0;
@@ -416,7 +418,7 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                     if(Collision(Hitbox, gen4.InteractionBox)) {
                         TimeInContact += DeltaTime;
                         if (TimeInContact >= ContactTime) {
-                            Time += 10;
+                            Time += 5;
                             Respawn();
                         }
                     } else TimeInContact = 0;
@@ -480,6 +482,7 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
         camera.TriggerShake(10.0, 1.0);
         audio.PlaySound(KillSound);
         particleManager.Emit(Position, 13, 1.5, 15, 10, 10, false);
+        TimeStop = 0.1;
         isActive = false;
     }
 
