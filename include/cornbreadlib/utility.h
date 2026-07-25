@@ -6,3 +6,9 @@
 extern float quadData[24];
 
 float lerpToTime(float lerp, float DeltaTime);
+
+float EaseIn(float lerp);
+
+float EaseOut(float lerp);
+
+float EaseInOut(float lerp);

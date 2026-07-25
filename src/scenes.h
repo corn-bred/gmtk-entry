@@ -56,6 +56,10 @@ class PlayingScene : public Scene {
     int TimeLeft;
     float Time, LastTime;
 
+    float TimeSinceFinished = 0;
+
+    Screen CurrentState = Screen::Playing;
+
     TextRenderer *timeText;
 
     GridSpace *WorldGrid;
@@ -70,6 +74,23 @@ class PlayingScene : public Scene {
 
     Generator *Generators[4];
 
+    Animation *PlayerAnimation;
+
+    public:
+
+    void Init() override;
+
+    void Update() override;
+
+    void Render() override;
+
+    void Exit() override;
+};
+
+class MainMenuScene : public Scene {
+    VertexBuffer *mainVBO;
+    Shader *mainShader;
+    TextRenderer *text;
     public:
 
     void Init() override;

@@ -26,7 +26,7 @@ void GameState::Init() {
     input.BindAction(Action::MoveLeft, GLFW_KEY_A);
     input.BindAction(Action::MoveRight, GLFW_KEY_D);
     input.BindAction(Action::Dash, GLFW_KEY_SPACE);
-    ChangeScene(new PlayingScene());
+    ChangeScene(new MainMenuScene());
 }
 
 void GameState::Play(GLFWwindow *window) {

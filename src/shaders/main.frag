@@ -5,6 +5,7 @@ uniform sampler2D Texture;
 
 uniform bool isSolidColour;
 uniform vec3 Colour;
+uniform float Alpha;
 
 uniform bool isAnimation;
 uniform int Columns;
@@ -15,7 +16,7 @@ out vec4 FragColour;
 
 void main() {
     if (isSolidColour) {
-        FragColour = vec4(Colour, 1.0);
+        FragColour = vec4(Colour, Alpha);
     } else if (isAnimation) {
         vec2 TexSize = vec2(1.0 / Columns, 1.0 / Rows);
         vec2 TexLocalCoords = iTexCoords * TexSize;
