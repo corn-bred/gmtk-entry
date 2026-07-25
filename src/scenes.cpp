@@ -150,6 +150,7 @@ void PlayingScene::Update() {
     }
     if (CurrentState == Screen::Win) {
         MainPlayer->Velocity = glm::vec2(0.0);
+        mainCamera->UpdateShake();
     }
     
     
