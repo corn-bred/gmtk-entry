@@ -112,7 +112,7 @@ void PlayingScene::Update() {
 
     if (CurrentState == Screen::Playing) {
         if (TimeStop > 0)
-            DeltaTime *= 0.2;
+            DeltaTime = 0;
 
         Time += DeltaTime;
         if (floor(Time) != floor(LastTime)) {
@@ -161,7 +161,7 @@ void PlayingScene::Render() {
     glClear(GL_COLOR_BUFFER_BIT);
     mainShader->use();
 
-    glm::mat4 View = mainCamera->GetViewMatrix(WIDTH, HEIGHT);
+    glm::mat4 View = mainCamera->GetViewMatrix(WIDTH, HEIGHT, (TimeStop > 0.0) ? false : true);
     mainShader->setMat4("view", View);
 
     mainShader->setMat4("projection", Projection);

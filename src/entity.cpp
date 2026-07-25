@@ -482,7 +482,7 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
         camera.TriggerShake(10.0, 1.0);
         audio.PlaySound(KillSound);
         particleManager.Emit(Position, 13, 1.5, 15, 10, 10, false);
-        TimeStop = 0.1;
+        TimeStop = 0.05;
         isActive = false;
     }
 

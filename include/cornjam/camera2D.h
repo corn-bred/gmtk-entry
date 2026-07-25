@@ -48,5 +48,5 @@ class Camera2D {
 
     //View Matrix Creation
 
-    glm::mat4 GetViewMatrix(int ScreenWidth, int ScreenHeight);
+    glm::mat4 GetViewMatrix(int ScreenWidth, int ScreenHeight, bool Shake);
 };

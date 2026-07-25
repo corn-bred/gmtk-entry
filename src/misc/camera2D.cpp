@@ -72,7 +72,7 @@ float Camera2D::DirTowardsEntity_Radian(Entity &entity, int ScreenWidth, int Scr
 
 //View Matrix Creation
 
-glm::mat4 Camera2D::GetViewMatrix(int ScreenWidth, int ScreenHeight) {
+glm::mat4 Camera2D::GetViewMatrix(int ScreenWidth, int ScreenHeight, bool Shake) {
     glm::mat4 Matrix(1.0f);
 
     Matrix = glm::translate(Matrix, glm::vec3(ScreenWidth / 2, ScreenHeight / 2, 0.0));
@@ -81,9 +81,10 @@ glm::mat4 Camera2D::GetViewMatrix(int ScreenWidth, int ScreenHeight) {
     Matrix = glm::translate(Matrix, glm::vec3(-ScreenWidth / 2, -ScreenHeight / 2, 0.0));
 
     Matrix = glm::translate(Matrix, glm::vec3(-Position.x, -Position.y, 0.0));
-
-    glm::vec2 shake = GetShakeOffset();
-    Matrix = glm::translate(Matrix, glm::vec3(shake.x, shake.y, 0.0f));
+    if (Shake) {
+        glm::vec2 shake = GetShakeOffset();
+        Matrix = glm::translate(Matrix, glm::vec3(shake.x, shake.y, 0.0f));
+    }
     
     return Matrix;
 }
