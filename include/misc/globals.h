@@ -14,3 +14,4 @@ extern GameState game;
 extern InputManager input;
 extern AudioManager audio;
 extern glm::vec2 MousePos;
+extern int HighScore;

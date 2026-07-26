@@ -2,6 +2,7 @@
 #include "scenes.h"
 #include <misc/globals.h>
 #include <memory>
+#include <cornbreadlib/audiodata.h>
 
 class GameState {
     private:

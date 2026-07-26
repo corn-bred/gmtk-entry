@@ -12,6 +12,14 @@ class AudioData {
     public:
     ALuint ID;
     const char *AudioPath;
+
+    std::vector<float> rmsFrames;          // Loudness per frame
+    std::vector<float> peakFrames;         // Peak amplitude per frame
+    float maxAmplitude = 0.0f;
+    float sampleRate = 0.0f;
+    float totalDuration = 0.0f;
+    int channels = 0;
+    int totalSamples = 0;
     AudioData(const char *audioPath) : AudioPath(audioPath) {
         //Source is where the sound comes from, and a buffer is the data of the audio
         alGenBuffers(1, &ID);
@@ -27,6 +35,38 @@ class AudioData {
             alcMakeContextCurrent(0);
             
             return;
+        }
+
+        this->sampleRate = (float)SampleRate;
+        this->channels = Channels;
+        this->totalSamples = TotalPCMFrameCount * Channels;
+        this->totalDuration = (float)TotalPCMFrameCount / (float)SampleRate;
+
+        int frameSize = SampleRate / 20; // 20 frames per second (adjust as needed)
+        int numFrames = (TotalPCMFrameCount + frameSize - 1) / frameSize;
+        rmsFrames.reserve(numFrames);
+        peakFrames.reserve(numFrames);
+
+        for (int frame = 0; frame < numFrames; frame++) {
+            int startIdx = frame * frameSize * Channels;
+            int endIdx = std::min(startIdx + frameSize * Channels, (int)TotalPCMFrameCount * Channels);
+
+            float sumSquares = 0.0f;
+            float peak = 0.0f;
+
+            for (int i = startIdx; i < endIdx; i++) {
+                float sample = (float)SampleData[i] / 32768.0f; // maximum number for float_16
+                sumSquares += sample * sample;
+                if (std::abs(sample) > peak) peak = std::abs(sample);
+            }
+
+            int sampleCount = endIdx - startIdx;
+            if (sampleCount > 0) {
+                float rms = (sampleCount > 0) ? sqrtf(sumSquares / sampleCount) : 0.0f;
+                rmsFrames.push_back(rms);
+                peakFrames.push_back(peak);
+                if (peak > maxAmplitude) maxAmplitude = peak;
+            }
         }
 
         //Get format
@@ -80,5 +120,21 @@ class AudioData {
 
     void SetSourceDirection(glm::vec3 normalizedVec) {
         NormalizedVec = normalizedVec;
+    }
+
+    float GetLoudnessAtTime(float time) {
+        if (rmsFrames.empty()) return 0.0f;
+        float frameIndex = time * (rmsFrames.size() / totalDuration);
+        int idx = (int)frameIndex;
+        if (idx >= rmsFrames.size()) idx = rmsFrames.size() - 1;
+        return rmsFrames[idx];
+    }
+
+    float GetPeakAtTime(float time) {
+        if (peakFrames.empty()) return 0.0f;
+        float frameIndex = time * (peakFrames.size() / totalDuration);
+        int idx = (int)frameIndex;
+        if (idx >= peakFrames.size()) idx = peakFrames.size() - 1;
+        return peakFrames[idx];
     }
 };

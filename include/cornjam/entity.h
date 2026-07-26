@@ -80,7 +80,7 @@ class Player : public Entity {
 
     Player(glm::vec3 position, float directionRad, glm::vec2 speed, glm::vec2 velocity, glm::vec2 terminalSpeed, glm::vec2 resistance, glm::vec2 scaleLocal, glm::vec2 scaleGlobal, glm::vec2 hitboxPosition, glm::vec2 hitboxSize, glm::vec2 hurtboxPosition, glm::vec2 hurtboxSize, float dashSpeed, float dashRefillSpeed, float dashUseSpeed, float dashCoolDown, float invincibilityTime);
 
-    void VeloUpdate(GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, std::vector<Enemy*> &enemies, Particles &particleManager);
+    void VeloUpdate(GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, std::vector<Enemy*> &enemies, Particles &particleManager, int &score);
 
     glm::mat4 GetTransformMatrix();
 
@@ -124,7 +124,7 @@ class Enemy : public Entity {
 
     void Respawn(glm::vec2 position);
 
-    void Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera, Particles &particleManager, float &TimeStop);
+    void Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera, Particles &particleManager, float &TimeStop, int &score);
 
     glm::mat4 GetTransformMatrix();
 };

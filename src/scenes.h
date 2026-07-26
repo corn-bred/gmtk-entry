@@ -80,10 +80,20 @@ class PlayingScene : public Scene {
     Generator *Generators[4];
     Animation *GeneratorAnimation;
 
-    TextureBuffer *Background;
+    TextureBuffer *Background, *BlipTex, *Vignette;
     VertexBuffer *bgVBO;
 
     AudioData *GameLost, *GameWon, *GameStart;
+
+    AudioData *musicBuffer;
+
+    float SpawnStop = 0.1;
+
+    int NextSpawnIdx = 0;
+
+    int Score = 0.0;
+
+    float SpawnTime = 0.0;
 
     float RetryOverload = 1.0;
 

@@ -72,7 +72,7 @@ Player::Player(glm::vec3 position = glm::vec3(0.0), float directionRad = 0.0, gl
     HurtboxPosition = hurtboxPosition;
 }
 
-void Player::VeloUpdate(GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, std::vector<Enemy*> &enemies, Particles &particleManager) { //If anything is farther than searchRadius, discard it from collision testing.
+void Player::VeloUpdate(GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, std::vector<Enemy*> &enemies, Particles &particleManager, int &score) { //If anything is farther than searchRadius, discard it from collision testing.
     //First, clamp the velocities
     Velocity.x = glm::clamp(Velocity.x, -TerminalSpeed.x, TerminalSpeed.x);
     Velocity.y = glm::clamp(Velocity.y, -TerminalSpeed.y, TerminalSpeed.y);
@@ -157,6 +157,9 @@ void Player::VeloUpdate(GridSpace &grid, int searchRadius, Generator &gen1, Gene
             CollisionAxes[0] = 1;
             
     }
+
+    Position.x = glm::clamp(Position.x, -1050.0f, 1050.0f);
+
     Hitbox.Origin.x = Position.x; //Update hitbox
     
     CollisionAxes[1] = 0;
@@ -238,6 +241,10 @@ void Player::VeloUpdate(GridSpace &grid, int searchRadius, Generator &gen1, Gene
             
     }
 
+    //Lag safegaurd
+    std::cout << Position.x << ", " << Position.y << std::endl;
+    Position.y = glm::clamp(Position.y, -1050.0f, 1050.0f);
+
     Hitbox.Origin.y = Position.y; //Update hitbox
     //std::cout << CollisionAxes[0] << ", " << CollisionAxes[1] << std::endl;
 
@@ -245,6 +252,7 @@ void Player::VeloUpdate(GridSpace &grid, int searchRadius, Generator &gen1, Gene
 
     for (int i = 0; i < enemies.size(); i++) {
         if (Collision(Hurtbox, enemies[i]->Hitbox) && iTime <= 0.0 && ((!isDashing && DashingTime > 0.2) || enemies[i]->isDashing) && enemies[i]->isActive && enemies[i]->SpawnProtTime <= 0.0) {
+            score -= 10.0;
             Health -= 10.0;
             iTime = InvincTime;
             particleManager.Emit(Position, 5, 0.5, 10, 10, 10, false);
@@ -346,7 +354,7 @@ void Enemy::Respawn(glm::vec2 position) {
     isActive = true;
 }
 
-void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera, Particles &particleManager, float &TimeStop) { //If anything is farther than searchRadius, discard it from collision testing.
+void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator &gen1, Generator &gen2, Generator &gen3, Generator &gen4, int &Time, Camera2D &camera, Particles &particleManager, float &TimeStop, int &score) { //If anything is farther than searchRadius, discard it from collision testing.
     if (isActive == false) return;
 
     if (CurrentState == EnemyState::ReadyDash) Velocity = glm::vec2(0.0);
@@ -399,7 +407,8 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                     if(Collision(Hitbox, gen1.InteractionBox)) {
                         TimeInContact += DeltaTime;
                         if (TimeInContact >= ContactTime) {
-                            Time += 5;
+                            score -= 10.0;
+                            Time += 3;
                             isActive = false;
                             audio.PlaySound(AddTime);
                         }
@@ -409,7 +418,8 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                     if(Collision(Hitbox, gen2.InteractionBox)) {
                         TimeInContact += DeltaTime;
                         if (TimeInContact >= ContactTime) { 
-                            Time += 5;
+                            score -= 10.0;
+                            Time += 3;
                             isActive = false;
                             audio.PlaySound(AddTime);
                         }
@@ -419,7 +429,8 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                     if(Collision(Hitbox, gen3.InteractionBox)) {
                         TimeInContact += DeltaTime;
                         if (TimeInContact >= ContactTime) {
-                            Time += 5;
+                            score -= 10.0;
+                            Time += 3;
                             isActive = false;
                             audio.PlaySound(AddTime);
                         }
@@ -429,7 +440,8 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
                     if(Collision(Hitbox, gen4.InteractionBox)) {
                         TimeInContact += DeltaTime;
                         if (TimeInContact >= ContactTime) {
-                            Time += 5;
+                            score -= 10.0;
+                            Time += 3;
                             isActive = false;
                             audio.PlaySound(AddTime);
                         }
@@ -489,10 +501,11 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
         DashCooldown -= DeltaTime;
     }
 
-    SpawnProtTime = glm::clamp(SpawnProtTime - DeltaTime, 0.0, 10000.0);
+    SpawnProtTime = glm::clamp(SpawnProtTime - DeltaTime, -10.0, 10000.0);
 
     //is bro touching a player
     if (Colliding(player) && SpawnProtTime <= 0.0) {
+        score += 10.0 + SpawnProtTime + 2.0;
         camera.TriggerShake(10.0, 1.0);
         audio.PlaySound(KillSound);
         particleManager.Emit(Position, 13, 1.5, 15, 10, 10, false);
@@ -579,6 +592,7 @@ void Enemy::Update(Player &player, GridSpace &grid, int searchRadius, Generator 
             CollisionAxes[0] = 1;
             
     }
+
     Hitbox.Origin.x = Position.x; //Update hitbox
     
 

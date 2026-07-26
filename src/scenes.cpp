@@ -5,6 +5,9 @@
 
 //PlayingScene
 
+bool musicStarted = false;
+ALuint musicSource;
+
 void RenderBarX(Shader &mainShader, VertexBuffer &mainVBO, float progress, glm::vec2 scale, glm::vec2 position, glm::vec3 barColor) {
     glm::mat4 UIView(1.0);
     // Background of health bar when empty
@@ -86,7 +89,7 @@ void debugDraw(Shader &mainShader, VertexBuffer &mainVBO, AABBHitbox &hitbox) {
 void PlayingScene::Init() {
     Time = 0.0f;   
     LastTime = 0.0f;
-    TimeLeft = 60;
+    TimeLeft = 90;
     CurrentState = Screen::Playing;
 
     MainPlayer = new Player(glm::vec3(0.0, -500.0, 0.0), 0.0, glm::vec2(200.0), glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(100), glm::vec2(1.0), glm::vec2(-25), glm::vec2(50), glm::vec2(0, 0), glm::vec2(30), 4000.0, 1.5, 0.5, 0.7, 1.0);
@@ -100,7 +103,8 @@ void PlayingScene::Init() {
         Enemies.push_back(new Enemy(glm::vec3(rand() % 100 - 50, rand() % 100 - 50, 0.0), 0.0, 125.0, glm::vec2(0.0), glm::vec2(10000.0), glm::vec2(0.8), glm::vec2(100), glm::vec2(1.0), glm::vec2(-25), glm::vec2(50), 1.5, 2250.0, 1.5f, 3.5f));
     }
 
-    Background = new TextureBuffer("res/img/0055.png", GL_REPEAT, GL_REPEAT);
+    Background = new TextureBuffer("res/img/background.png", GL_REPEAT, GL_REPEAT);
+    BlipTex = new TextureBuffer("res/img/blip.png");
 
     Generators[0] = new Generator(glm::vec2(1000, 0.0));
     Generators[1] = new Generator(glm::vec2(-1000, 0.0));
@@ -130,6 +134,8 @@ void PlayingScene::Init() {
     mainVBO->addAttribute(0, 2, GL_FLOAT, 4, 0);
     mainVBO->addAttribute(1, 2, GL_FLOAT, 4, 2);
 
+    Vignette = new TextureBuffer("res/img/vignette.png");
+
     mainShader = new Shader("src/shaders/main.vert", "src/shaders/main.frag");
 
     mainCamera = new Camera2D(glm::vec3(0.0, 0.0, 0.0), glm::vec2(1.0), 0.0);
@@ -145,6 +151,12 @@ void PlayingScene::Init() {
     GameStart = new AudioData("res/audio/gamestart.wav");
 
     audio.PlaySound(*GameStart);
+
+    musicBuffer = new AudioData("res/audio/song.wav");
+    musicBuffer->SetSourceGain(0.5);
+    if (!musicStarted)
+        musicSource = audio.PlayMusic(*musicBuffer);
+    musicStarted = true;
 }   
 
 void PlayingScene::Update() {
@@ -173,34 +185,65 @@ void PlayingScene::Update() {
     }
 
     TimeStop = glm::max(TimeStop - DeltaTime, 0.0);
+    SpawnStop = glm::max(SpawnStop - DeltaTime, 0.0);
 
     if (CurrentState == Screen::Playing) {
+        if (SpawnStop > 0)
+            MainPlayer->Position = glm::vec3(0.0, -500, 0.0);
         if (TimeStop > 0)
             DeltaTime = 0;
 
         Time += DeltaTime;
         if (floor(Time) != floor(LastTime)) {
             TimeLeft--;
-            if (TimeLeft >= 60 && TimeLeft % 5 == 0) {
-                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
-            } else if (TimeLeft < 60 && TimeLeft % 4 == 0) {
-                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
-            } else if (TimeLeft < 50 && TimeLeft >= 40 && TimeLeft % 3 == 0) {
-                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
-            } else if (TimeLeft < 40 && TimeLeft >= 30  && TimeLeft % 2 == 0) {
-                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
-            } else if (TimeLeft < 30 && TimeLeft >= 20) {
-                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
-            } else if (TimeLeft < 20 && TimeLeft >= 10) {
-                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 300 - 150, rand() % 300 - 150));
-            } else if (TimeLeft < 10) {
-                Enemies[TimeLeft % 29]->Respawn(glm::vec2(rand() % 700 - 350, rand() % 700 - 350));
-            }
+        }
+
+        SpawnTime += DeltaTime;
+        if (TimeLeft >= 90 && SpawnTime >= 5) {
+            Enemies[NextSpawnIdx % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
+            NextSpawnIdx++;
+            SpawnTime -= 5;
+        } else if (TimeLeft < 90 && TimeLeft >= 80 && SpawnTime >= 4) {
+            Enemies[NextSpawnIdx % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
+            NextSpawnIdx++;
+            SpawnTime -= 4;
+        } else if (TimeLeft < 80 && TimeLeft >= 70 && SpawnTime >= 3) {
+            Enemies[NextSpawnIdx % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
+            NextSpawnIdx++;
+            SpawnTime -= 3;
+        } else if (TimeLeft < 70 && TimeLeft >= 60 && SpawnTime >= 2) {
+            Enemies[NextSpawnIdx % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
+            NextSpawnIdx++;
+            SpawnTime -= 2;
+        } else if (TimeLeft < 60 && TimeLeft >= 50 && SpawnTime >= 1.5) {
+            Enemies[NextSpawnIdx % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
+            NextSpawnIdx++;
+            SpawnTime -= 1.5;
+        } else if (TimeLeft < 50 && TimeLeft >= 40 && SpawnTime >= 1) {
+            Enemies[NextSpawnIdx % 29]->Respawn(glm::vec2(rand() % 100 - 50, rand() % 100 - 50));
+            NextSpawnIdx++;
+            SpawnTime -= 1;
+        } else if (TimeLeft < 40 && TimeLeft >= 30 && SpawnTime >= 1) {
+            Enemies[NextSpawnIdx % 29]->Respawn(glm::vec2(rand() % 300 - 150, rand() % 300 - 150));
+            NextSpawnIdx++;
+            SpawnTime -= 1;
+        } else if (TimeLeft < 30 && TimeLeft >= 20 && SpawnTime >= 1) {
+            Enemies[NextSpawnIdx % 29]->Respawn(glm::vec2(rand() % 700 - 350, rand() % 700 - 350));
+            NextSpawnIdx++;
+            SpawnTime -= 1;
+        } else if (TimeLeft < 20 && TimeLeft >= 10 && SpawnTime >= 0.8) {
+            Enemies[NextSpawnIdx % 29]->Respawn(glm::vec2(rand() % 700 - 350, rand() % 700 - 350));
+            NextSpawnIdx++;
+            SpawnTime -= 0.8;
+        } else if (TimeLeft < 10 && SpawnTime >= 0.666) {
+            Enemies[NextSpawnIdx % 29]->Respawn(glm::vec2(rand() % 700 - 350, rand() % 700 - 350));
+            NextSpawnIdx++;
+            SpawnTime -= 0.666;
         }
     
         MainPlayer->KeyboardUpdate(input);
     
-        MainPlayer->VeloUpdate(*WorldGrid, 200, *Generators[0], *Generators[1], *Generators[2], *Generators[3], Enemies, *ParticleManager);
+        MainPlayer->VeloUpdate(*WorldGrid, 200, *Generators[0], *Generators[1], *Generators[2], *Generators[3], Enemies, *ParticleManager, Score);
     
         if (!MainPlayer->isDashing) {
             glm::vec2 PCMousePos = glm::vec2(MousePos.x - WIDTH / 2, (MousePos.y - HEIGHT / 2) * -1);
@@ -216,7 +259,7 @@ void PlayingScene::Update() {
         GeneratorAnimation->Update();
     
         for (int i = 0; i < Enemies.size(); i++) {
-            Enemies[i]->Update(*MainPlayer, *WorldGrid, 200, *Generators[0], *Generators[1], *Generators[2], *Generators[3], TimeLeft, *mainCamera, *ParticleManager, TimeStop);
+            Enemies[i]->Update(*MainPlayer, *WorldGrid, 200, *Generators[0], *Generators[1], *Generators[2], *Generators[3], TimeLeft, *mainCamera, *ParticleManager, TimeStop, Score);
         }
 
         EnemyWalking->Update();
@@ -225,6 +268,11 @@ void PlayingScene::Update() {
         mainCamera->UpdateShake();
 
         LastTime = Time;
+
+        ALfloat offset = 0.0f;
+        alGetSourcef(musicSource, AL_SEC_OFFSET, &offset);
+
+        mainCamera->Scale = glm::vec3(1.0 + (musicBuffer->GetLoudnessAtTime(offset)) / 3);
     }
     if (CurrentState == Screen::Win) {
         MainPlayer->Velocity = glm::vec2(0.0);
@@ -304,6 +352,39 @@ void PlayingScene::Render() {
             EnemyDashing->RenderSprite(*mainShader, *mainVBO, EnemyModel, View, Projection);
         else
             EnemyWalking->RenderSprite(*mainShader, *mainVBO, EnemyModel, View, Projection);
+
+        glm::vec2 screenPos =   glm::vec2(Enemies[i]->Position.x, Enemies[i]->Position.y) - 
+                                glm::vec2(mainCamera->Position.x, mainCamera->Position.y);
+
+        if (screenPos.x >= 0 && screenPos.x <= WIDTH &&
+            screenPos.y >= 0 && screenPos.y <= HEIGHT) {
+            continue;
+        }
+
+        mainShader->use();
+
+        mainShader->setBool("isSolidColour", false);
+        mainShader->setBool("isAnimation", false);
+
+        mainShader->setVec4("ColourMultiplier", glm::vec4(1.0, 1.0, 1.0, 0.5));
+
+        screenPos = glm::clamp(screenPos, glm::vec2(40), glm::vec2(WIDTH - 40, HEIGHT - 40));
+
+        glm::vec2 blipDir = glm::normalize(Enemies[i]->Position - MainPlayer->Position);
+        
+        glm::mat4 blipModel(1.0);
+        
+        blipModel = glm::translate(blipModel, glm::vec3(screenPos.x, screenPos.y, 0.0f));
+        blipModel = glm::rotate(blipModel, glm::atan(blipDir.y, blipDir.x), glm::vec3(0.0, 0.0, 1.0));
+        blipModel = glm::scale(blipModel, glm::vec3(100, 100, 1.0f));
+        mainShader->setMat4("model", blipModel);
+        mainShader->setMat4("view", glm::mat4(1.0f));
+
+        mainShader->setInt("Texture", 0);
+        BlipTex->bindTexture(0);
+
+        mainVBO->bind();
+        glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
     mainShader->setVec4("ColourMultiplier", glm::vec4(1.0));
@@ -343,13 +424,13 @@ void PlayingScene::Render() {
 
     glm::vec2 TextSpawnArea;
 
-    if (TimeLeft > 20) {
+    if (TimeLeft > 40) {
         SpawnArea = glm::scale(SpawnArea, glm::vec3(200, 200, 0.0));
         TextSpawnArea = glm::clamp(glm::vec2(mainCamera->Position + glm::vec3(0.0, HEIGHT - 60, 0.0)), glm::vec2(-100, -100), glm::vec2(100, 100));
-    } else if (TimeLeft > 10) {
+    } else if (TimeLeft < 40 && TimeLeft >= 30) {
         SpawnArea = glm::scale(SpawnArea, glm::vec3(600, 600, 0.0));
         TextSpawnArea = glm::clamp(glm::vec2(mainCamera->Position + glm::vec3(0.0, HEIGHT - 60, 0.0)), glm::vec2(-300, -300), glm::vec2(300, 300));
-    } else if (TimeLeft <= 10) {
+    } else if (TimeLeft < 30) {
         SpawnArea = glm::scale(SpawnArea, glm::vec3(1400, 1400, 0.0));
         TextSpawnArea = glm::clamp(glm::vec2(mainCamera->Position + glm::vec3(0.0, HEIGHT - 60, 0.0)), glm::vec2(-700, -700), glm::vec2(700, 700));
     }
@@ -367,16 +448,28 @@ void PlayingScene::Render() {
 
     glm::mat4 UIView(1.0);
 
-    if (TimeLeft >= 60)
+    if (TimeLeft >= 90)
         timeText->RenderText("Spawn rate: 1/5s", glm::vec2(20.0, HEIGHT - 60), 0.5, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
-    else if (TimeLeft < 60 && TimeLeft >= 50)
+    else if (TimeLeft < 90 && TimeLeft >= 80)
         timeText->RenderText("Spawn rate: 1/4s", glm::vec2(20.0, HEIGHT - 60), 0.5, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
-    else if (TimeLeft < 50 && TimeLeft >= 40)
+    else if (TimeLeft < 80 && TimeLeft >= 70)
         timeText->RenderText("Spawn rate: 1/3s", glm::vec2(20.0, HEIGHT - 60), 0.5, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
-    else if (TimeLeft < 40 && TimeLeft >= 30)
+    else if (TimeLeft < 70 && TimeLeft >= 60)
         timeText->RenderText("Spawn rate: 1/2s", glm::vec2(20.0, HEIGHT - 60), 0.5, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
-    else 
+    else if (TimeLeft < 60 && TimeLeft >= 50)
+        timeText->RenderText("Spawn rate: 1/1.5s", glm::vec2(20.0, HEIGHT - 60), 0.5, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
+    else if (TimeLeft < 50 && TimeLeft >= 40)
         timeText->RenderText("Spawn rate: 1/1s", glm::vec2(20.0, HEIGHT - 60), 0.5, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
+    else if (TimeLeft < 40 && TimeLeft >= 30)
+        timeText->RenderText("Spawn rate: 1/1s", glm::vec2(20.0, HEIGHT - 60), 0.5, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
+    else if (TimeLeft < 30 && TimeLeft >= 20)
+        timeText->RenderText("Spawn rate: 1/1s", glm::vec2(20.0, HEIGHT - 60), 0.5, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
+    else if (TimeLeft < 20 && TimeLeft >= 10)
+        timeText->RenderText("Spawn rate: 1.25/1s", glm::vec2(20.0, HEIGHT - 60), 0.5, glm::vec4(0.2, 0.0, 0.0, 1.0), UIView, Projection);
+    else if (TimeLeft < 10)
+        timeText->RenderText("Spawn rate: 1.5/1s!", glm::vec2(20.0, HEIGHT - 60), 0.5, glm::vec4(0.5, 0.0, 0.0, 1.0), UIView, Projection);
+
+    mainShader->setVec4("ColourMultiplier", glm::vec4(1.0));
 
     timeText->RenderText(std::to_string(TimeLeft) + "s", glm::vec2(40, 40), 1.0, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
 
@@ -385,6 +478,26 @@ void PlayingScene::Render() {
     timeText->RenderText("HP: " + std::to_string(int(MainPlayer->Health)), glm::vec2(WIDTH / 2.0 - 250, 65), 0.5, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
 
     RenderBarX(*mainShader, *mainVBO, MainPlayer->Health / 100.0, glm::vec2(500, 30), glm::vec2(WIDTH / 2.0 - 250, 40), (MainPlayer->Health / 100.0 >= 0.7) ? glm::vec3(0.0, 1.0, 0.0) : (MainPlayer->Health / 100.0 >= 0.3) ? glm::vec3(1.0, 1.0, 0.0): glm::vec3(1.0, 0.0, 0.0));
+
+    mainShader->use();
+
+    glm::mat4 Overlay(1.0f);
+    Overlay = glm::translate(Overlay, glm::vec3(WIDTH/2, HEIGHT/2, 0.0));
+    Overlay = glm::scale(Overlay, glm::vec3(WIDTH, HEIGHT, 0.0));
+
+    mainShader->setMat4("model", Overlay);
+
+    mainShader->setMat4("view", UIView);
+
+    mainShader->setBool("isSolidColour", false);
+    mainShader->setBool("isAnimation", false);
+
+    mainShader->setInt("Texture", 0);
+
+    Vignette->bindTexture(0);
+    mainShader->setVec4("ColourMultiplier", glm::vec4(1.0, 1.0, 1.0, glm::clamp(((1.0 - TimeLeft/ 90.0) - 0.8) * 5, 0.0, 1.0)));
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     //Overlay for screens
     if (CurrentState == Screen::Lose) {
@@ -403,7 +516,7 @@ void PlayingScene::Render() {
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        timeText->RenderText("Game Over :(", glm::vec2(100, HEIGHT + 100 - (EaseInOut(glm::clamp(TimeSinceFinished - 2, 0.0f, 1.0f)) * 400)), 1.0, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
+        timeText->RenderText("You lost and \nwere trapped \nforever...", glm::vec2(100, HEIGHT + 200 - (EaseInOut(glm::clamp(TimeSinceFinished - 2, 0.0f, 1.0f)) * 400)), 1.0, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
 
         timeText->RenderText("Press & hold R to retry", glm::vec2(100, -100 + (EaseOut(glm::clamp(TimeSinceFinished - 4, 0.0f, 1.0f)) * 400)), 0.6, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
     }
@@ -423,7 +536,7 @@ void PlayingScene::Render() {
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        timeText->RenderText("You win :)", glm::vec2(100, HEIGHT + 100 - (EaseOut(glm::clamp(TimeSinceFinished - 2, 0.0f, 1.0f)) * 400)), 1.0, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
+        timeText->RenderText("The matrix was \nshut down \nand you're free!", glm::vec2(100, HEIGHT + 200 - (EaseOut(glm::clamp(TimeSinceFinished - 2, 0.0f, 1.0f)) * 400)), 0.8, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
 
         timeText->RenderText("Press & hold R to retry", glm::vec2(100, -100 + (EaseOut(glm::clamp(TimeSinceFinished - 4, 0.0f, 1.0f)) * 400)), 0.6, glm::vec4(0.0, 0.0, 0.0, 1.0), UIView, Projection);
     }
@@ -448,6 +561,9 @@ void PlayingScene::Exit() {
     delete GameLost;
     delete GameStart;
     delete GameWon;
+    delete BlipTex;
+    delete musicBuffer;
+    delete Vignette;
     MainPlayer = nullptr;
     WorldGrid = nullptr;
     mainVBO = nullptr;
@@ -462,6 +578,9 @@ void PlayingScene::Exit() {
     GameLost = nullptr;
     GameStart = nullptr;
     GameWon = nullptr;
+    BlipTex = nullptr;
+    musicBuffer = nullptr;
+    Vignette = nullptr;
 }
 
 //MainMenuScene
@@ -486,7 +605,7 @@ void MainMenuScene::Render() {
     glClearColor(0.9f, 0.9f, 0.9f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     glm::mat4 View(1.0f);
-    text->RenderText("COUNTDOWN", glm::vec2(WIDTH/2 - 100 - 225, HEIGHT/2 + 50), 1.0f, glm::vec4(0.0, 0.0, 0.0, 1.0), View, Projection);
+    text->RenderText("SHUTDOWN", glm::vec2(WIDTH/2 - 100 - 225, HEIGHT/2 + 50), 1.0f, glm::vec4(0.0, 0.0, 0.0, 1.0), View, Projection);
     text->RenderText("Press ENTER to Start", glm::vec2(WIDTH/2 - 120 - 225, HEIGHT/2 - 20), 0.5f, glm::vec4(0.0, 0.0, 0.0, 1.0), View, Projection); 
 }
 

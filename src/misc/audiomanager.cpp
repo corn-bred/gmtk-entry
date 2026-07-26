@@ -92,6 +92,23 @@ void AudioManager::PlaySound(AudioData &buffer) {
     alSourcePlay(src);
 }
 
+ALuint AudioManager::PlayMusic(AudioData &buffer) {
+    if (SourceAvailPool.empty()) return 0;
+    ALuint src = SourceAvailPool.back();
+    SourceAvailPool.pop_back();
+    SourceUsedPool.push_back(src);
+    alSourcei(src, AL_BUFFER, buffer.ID);
+    alSource3f(src, AL_POSITION, buffer.Position.x, buffer.Position.y, buffer.Position.z);
+    alSourcei(src, AL_LOOPING, buffer.Looping);
+    alSourcef(src, AL_PITCH, buffer.Pitch);
+    alSourcef(src, AL_GAIN, buffer.Gain);
+    alSource3f(src, AL_VELOCITY, buffer.Velocity.x, buffer.Velocity.y, buffer.Velocity.z);
+    alSource3f(src, AL_DIRECTION, buffer.NormalizedVec.x, buffer.NormalizedVec.y, buffer.NormalizedVec.z);
+    alSourcei(src, AL_LOOPING, AL_TRUE);
+    alSourcePlay(src);
+    return src;
+}
+
 void AudioManager::Update() {
     for (auto iterator = SourceUsedPool.begin(); iterator != SourceUsedPool.end();) {
         ALuint src = *iterator; //give me the point

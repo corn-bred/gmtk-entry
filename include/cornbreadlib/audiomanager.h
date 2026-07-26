@@ -33,6 +33,7 @@ class AudioManager {
     AudioManager& operator=(const AudioManager&) = delete;
 
     void PlaySound(AudioData &buffer);
+    ALuint PlayMusic(AudioData &buffer);
 
     void Update();
 
