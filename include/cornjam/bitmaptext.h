@@ -60,7 +60,7 @@ class TextRenderer {
     TextRenderer(const char *texturePath, int columns, int rows, float width, float height, bool isFlippedVert = true) : _Font(texturePath, columns, rows, width, height, isFlippedVert), _VBO(nullptr, 0, GL_DYNAMIC_DRAW), _Shader("src/shaders/text.vert", "src/shaders/text.frag") {}
     
 
-    void RenderText(const std::string text,  glm::vec2 position, float scale, glm::mat4 &view, glm::mat4 &projection) {
+    void RenderText(const std::string text, glm::vec2 position, float scale, glm::vec4 colourMultiplier, glm::mat4 &view, glm::mat4 &projection) {
         
 
         std::vector<float> Vertices;
@@ -126,6 +126,8 @@ class TextRenderer {
         _Shader.setMat4("view", view);
 
         _Shader.setMat4("projection", projection);
+        
+        _Shader.setVec4("ColourMultiplier", colourMultiplier);
 
         _Font.texture.bindTexture(0);
 

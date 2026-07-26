@@ -69,8 +69,9 @@ class Player : public Entity {
 
     AudioData PlayerDash, PlayerHurt, PlayerDeath;
 
-    bool isDashing = false;
+    float DashingTime = 0.0;
     float LastDash = 0.0;
+    bool isDashing = false;
 
     float Health = 100.0;
     float iTime = 0.0;
@@ -100,6 +101,7 @@ class Enemy : public Entity {
     bool isActive = false;
 
     bool isDashing = false;
+    float DashingTime = 0.0;
     float DashSpeed;
     float DashPrepareTime = 0.0;
     float DashPrepTime;

@@ -244,7 +244,7 @@ void Player::VeloUpdate(GridSpace &grid, int searchRadius, Generator &gen1, Gene
     Hurtbox.Origin = HurtboxPosition + glm::vec2(Position.x, Position.y);
 
     for (int i = 0; i < enemies.size(); i++) {
-        if (Collision(Hurtbox, enemies[i]->Hitbox) && iTime <= 0.0 && (!isDashing || enemies[i]->isDashing) && enemies[i]->isActive && enemies[i]->SpawnProtTime <= 0.0) {
+        if (Collision(Hurtbox, enemies[i]->Hitbox) && iTime <= 0.0 && ((!isDashing && DashingTime > 0.2) || enemies[i]->isDashing) && enemies[i]->isActive && enemies[i]->SpawnProtTime <= 0.0) {
             Health -= 10.0;
             iTime = InvincTime;
             particleManager.Emit(Position, 5, 0.5, 10, 10, 10, false);
@@ -296,20 +296,24 @@ void Player::KeyboardUpdate (InputManager &input) {
     }
 
     if (input.isActionPressed(Action::Dash) && LastDash > DashCooldown) {
-        if (!isDashing)
+        if (!isDashing) {
             audio.PlaySound(PlayerDash);
+            DashingTime = 0;
+        }
         Velocity = GetDirectionVec2() * DashSpeed * float(glm::pow(DashGauge, 1.0));
         
         DashGauge = std::clamp(float(DashGauge - (1.0 / DashUseSpeed) * DeltaTime), 0.0f, 1.0f);
         isDashing = true;
         LastDash = 1001.0f; //unreachable value with clamp
     } else {
+        DashingTime = glm::clamp(DashingTime + DeltaTime, 0.0, 100.0);
+        
         if (LastDash == 1001.0f) {
             LastDash = 0;
         }
         DashGauge = std::clamp(float(DashGauge + (1.0 / DashRefillSpeed) * DeltaTime), 0.0f, 1.0f);
         isDashing = false;
-        LastDash = LastDash + std::clamp(float(DeltaTime), -1000.0f, 1000.0f);//arbitrary large value
+        LastDash = std::clamp(LastDash + float(DeltaTime), -1000.0f, 1000.0f);//arbitrary large value
     }
     //std::cout << "DashGauge: " << DashGauge << ", HP: " << Health << std::endl;
 }
@@ -330,7 +334,7 @@ Enemy::Enemy(glm::vec3 position = glm::vec3(0.0), float directionRad = 0.0, floa
 }
 
 bool Enemy::Colliding(Player &player) {
-    if (player.isDashing && Collision(player.Hitbox, Hitbox)) {
+    if (((player.isDashing && player.DashGauge > 0.0) || player.DashingTime <= 0.2) && Collision(player.Hitbox, Hitbox)) {
         return true;
     } else
         return false;

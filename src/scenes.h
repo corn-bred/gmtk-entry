@@ -83,7 +83,9 @@ class PlayingScene : public Scene {
     TextureBuffer *Background;
     VertexBuffer *bgVBO;
 
-    AudioData *GameLost, *GameWon;
+    AudioData *GameLost, *GameWon, *GameStart;
+
+    float RetryOverload = 1.0;
 
     float TimeStop = 0.0;
 
@@ -102,7 +104,6 @@ class MainMenuScene : public Scene {
     VertexBuffer *mainVBO;
     Shader *mainShader;
     TextRenderer *text;
-    AudioData *GameStart;
     public:
 
     void Init() override;
